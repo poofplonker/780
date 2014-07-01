@@ -1,0 +1,28 @@
+Summary of LabelStream Classes:
+
+DATATYPES:
+
+DataType is the abstract class which call datatypes inherit. At the moment, the only
+mandatory function is a distance function for the clusters. 
+
+Subtypes:
+
+IntegerType: Captures integral data. This has min and maxes for normalising data. 
+DoubleType: Has identical data.
+CategoricalType: For string data. Has no min or max because its non sensical. 
+
+PROGRAMME FLOW:
+
+Firstly, DATAPROCESSOR class read in data from a file, and creates a DATAPOINT, a single tuple
+in an input stream, which contains vital information on whether it is labelled and so forth. 
+DATA CHUNK calls DATAPROCESSOR to make a frame of data. This data 
+chunk is what we use to perform the clustering operations on. 
+
+MODELS:
+
+A model contains much of the vital processing on a data chunk. It will take the data, 
+cluster into macroclusters using expectation minimisation, then each cluster will be 
+subdivided into microclusters. There are 3 clustering classes to facilitate this. 
+
+Then, those microclusters will be summarised into Pseudopoints. Then we can perform 
+label propagation on those pseudopoints. 
