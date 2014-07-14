@@ -47,9 +47,9 @@ public class Cluster {
 		ArrayList<DataType> newCentroidData = new ArrayList<DataType>(centroid.getVectorLength());
 		for(int i =0; i < centroid.getVectorLength(); i++){
 			if(samplePoint.getData().get(i) instanceof DoubleData){
-				newCentroidData.add(i,new DoubleData(doubleRaws[i]/centroid.getVectorLength()));
+				newCentroidData.add(i,new DoubleData(doubleRaws[i]/centroid.getVectorLength(),i,centroid.getVectorLength()));
 			}else if(samplePoint.getData().get(i) instanceof IntegerData){
-				newCentroidData.add(i,new IntegerData(integerRaws[i]/centroid.getVectorLength()));
+				newCentroidData.add(i,new IntegerData(integerRaws[i]/centroid.getVectorLength(),i,centroid.getVectorLength()));
 			}else{
 				//need to find most common string using the dictionary set up
 				int max = 0;
@@ -61,7 +61,7 @@ public class Cluster {
 						common = s;
 					}
 				}
-				newCentroidData.add(i, new CategoricalData(common));
+				newCentroidData.add(i, new CategoricalData(common,i,centroid.getVectorLength()));
 			}
 		}
 		newCentroid = new DataPoint(newCentroidData,length);

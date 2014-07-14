@@ -70,7 +70,7 @@ public class Model {
 		//randomly select points to be the initial centroids of the k clusters.
 		for(int i = 0; i < k; i++){
 			DataPoint centroid = dataPoints.get((int)twister.nextDouble()*k);
-			clusters.set(i, new MacroCluster(centroid,c));
+			clusters.add(i, new MacroCluster(centroid,c));
 		}
 		
 		//initialise all dataPoints to cluster with nearest centroid.

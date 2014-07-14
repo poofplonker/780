@@ -30,5 +30,8 @@ public class DataChunk {
 	public int getChunkSize(){
 		return this.chunkSize;
 	}
+	public int getNumLabelledPoints(){
+		return numLabelledPoints;
+	}
 	
 }

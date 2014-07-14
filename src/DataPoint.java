@@ -6,12 +6,11 @@ import sun.tools.tree.ThisExpression;
 
 public class DataPoint {
 	
-	private int predictedLabel = -1;
-	//-1 means no prediction has been made.
-	private final int actualLabel;
-	private ArrayList<DataType> data;
+	private int predictedLabel = -1;	//-1 means no prediction has been made.
+	private final int actualLabel;		
+	private ArrayList<DataType> data;	//Data with category and such
 	private int vectorLength;
-	private int clusterIndex;
+	private int clusterIndex;			//Which cluster the dataPoint is in. 
 	
 	public DataPoint(ArrayList<DataType> data, int i){
 		this.actualLabel = i;
@@ -54,7 +53,7 @@ public class DataPoint {
 		return this.vectorLength;
 	}
 	
-	
+	//Distance between two dataPoints. 
 	public double getDistanceValue(DataPoint other){
 		double[] difference = getDistanceVector(other.getData());
 		double value = 0;
@@ -62,16 +61,16 @@ public class DataPoint {
 			if(difference[i] < 0){
 				System.out.println("An error has occurred in the distance measurement.");
 			}
-			value += difference[i];
+			value += difference[i]*difference[i];
 		}
-		return value;
+		return Math.sqrt(value);
 	}
 	
+	//returns vector of distances between points in each dimension of two dataPoints.  
 	public double[] getDistanceVector(ArrayList<DataType> arrayList){
 		double[] distanceVector = new double[this.vectorLength];
 		for(int i = 0; i < this.vectorLength; i++){
 			distanceVector[i] = this.data.get(i).distance(arrayList.get(i));
-			distanceVector[i] *= distanceVector[i];
 		}
 		return distanceVector;
 	}

@@ -26,3 +26,5 @@ subdivided into microclusters. There are 3 clustering classes to facilitate this
 
 Then, those microclusters will be summarised into Pseudopoints. Then we can perform 
 label propagation on those pseudopoints. 
+
+MAIN: FILEREADER: Reads files in as datachunks and then starts operations on those datapoints. 

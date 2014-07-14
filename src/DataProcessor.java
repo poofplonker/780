@@ -9,7 +9,6 @@ import cern.jet.random.engine.MersenneTwister;
 
 public class DataProcessor {
 	//array of dictionaries, for any nominal value which needs to be converted to an int
-	private ArrayList<HashMap<String,Byte>> nameToNo;
 	//array of integer values counting the number of different nominal values for any string attribute
 	private int vectorLength;
 	private BufferedReader br;
@@ -17,10 +16,10 @@ public class DataProcessor {
 	private double percentUnlabelled;
 	
 	
-	public DataProcessor(int vectorLength, double percentUnlabelled){
+	public DataProcessor(int vectorLength, double percentUnlabelled, BufferedReader br){
 		this.vectorLength = vectorLength;
 		this.percentUnlabelled = percentUnlabelled;
-		this.br = new BufferedReader(new InputStreamReader(System.in));
+		this.br = br;
 	}
 	
 	public DataPoint processPoint(MersenneTwister twister){
@@ -45,20 +44,22 @@ public class DataProcessor {
 			/*Both all Integers share min and max: Fix */
 			if (values[i].matches("-?\\d+")){
 				int result = Integer.parseInt(values[i]);
-				dataValues.add(i, new IntegerData(result));
-				if(result > IntegerData.getMax()){
-					IntegerData.setMax(result);
+				IntegerData data =  new IntegerData(result,i,vectorLength);
+				dataValues.add(i,data);
+				if(result > data.getMax()){
+					data.setMax(result);
 				}
 			
 			//values is a float
 			}else if (values[i].matches("([0-9]*)\\.([0-9]*)")){
 				double result = Double.parseDouble(values[i]);
-				dataValues.add(i, new DoubleData(result));
-				if(result > DoubleData.getMax()){
-					DoubleData.setMax(result);
+				DoubleData data = new DoubleData(result,i,vectorLength);
+				dataValues.add(i, data);
+				if(result > data.getMax()){
+					data.setMax(result);
 				}
 			}else{
-				dataValues.add(i, new CategoricalData(values[i]));
+				dataValues.add(i, new CategoricalData(values[i],i,vectorLength));
 			}
 		}
 		DataPoint d;
@@ -66,7 +67,7 @@ public class DataProcessor {
 		if(twister.nextDouble() < percentUnlabelled){
 			d = new DataPoint(dataValues, 0);
 		}else{
-			d = new DataPoint(dataValues,((IntegerData)dataValues.get(vectorLength-1)).getRaw());
+			d = new DataPoint(dataValues,((CategoricalData)dataValues.get(vectorLength-1)).numerValue());
 		}
 		recordsProcessed++;
 		return d;

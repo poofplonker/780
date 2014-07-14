@@ -1,31 +1,67 @@
 
 public class IntegerData extends DataType{
-	private static int max = 0;
-	private static int min = 0;
 	private int rawValue;
+	private static int[] minArray;
+	private static int[] maxArray;
+	
+	public IntegerData(int value, int index, int vectorLength){
+		this(value);
+		
+		this.index = index;
+		DataType.vectorLength = vectorLength;
+		if(minArray == null){
+			minArray = new int[vectorLength];
+		}
+		if(maxArray == null){
+			maxArray = new int[vectorLength];
+		}
+	}
 	
 	public IntegerData(int value){
 		this.rawValue = value;
 	}
 	
-	public static int getMax(){
-		return max;
+	public boolean validIndex(){
+		return index >= 0 && index < vectorLength;
+	}
+	public int getMax(){
+		if (validIndex()){
+			return maxArray[index];
+		}else{
+			System.out.println("We cannot get the max value for this data item because it has an invalid index");
+			return 0;
+		}
+		
 	}
 	
-	public static void setMax(int temp){
-		max = temp;
+	public void setMax(int temp){
+		if (validIndex()){
+			maxArray[index] = temp;
+		}else{
+			System.out.println("We cannot set the max value for this data item because it has an invalid index");
+		}
 	}
 	
-	public static int getMin(){
-		return max;
+	public int getMin(){
+		if (validIndex()){
+			return minArray[index];
+		}else{
+			System.out.println("We cannot get the min value for this data item because it has an invalid index");
+			return 0;
+		}
+		
 	}
 	
-	public static void setMin(int temp){
-		min = temp;
+	public void setMin(int temp){
+		if (validIndex()){
+			minArray[index] = temp;
+		}else{
+			System.out.println("We cannot set the min value for this data item because it has an invalid index");
+		}
 	}
 	
 	public double normalise(int value){
-		return (double)value/(max-min);
+		return (double)value/(getMax()-getMin());
 	}
 	
 	public int getRaw(){
