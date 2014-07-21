@@ -10,14 +10,15 @@ import cern.jet.random.engine.MersenneTwister;
 public class Main {
 
 	public static void main(String[] args) throws FileNotFoundException {
-		BufferedReader br = new BufferedReader(new FileReader("input/kddcup.data_10_percent_corrected"));
-		MersenneTwister twist = new MersenneTwister();
+		BufferedReader br = new BufferedReader(new FileReader("input/kdduniq.data"));
+		MersenneTwister twist = new MersenneTwister(new java.util.Date());
 		int vectorLength = 0;	//length of datavector
-		int chunkSize = 10000;	//chunksize
+		int chunkSize = 1000;	//chunksize
 		int k = 5;	//number of clusters
 		double percentUnlabelled = 0;
 		try {
 			vectorLength = br.readLine().split(",").length;
+			System.out.println("Length: " + vectorLength);
 			
 		} catch (IOException e) {
 			// TODO Auto-generated catch block

@@ -80,6 +80,7 @@ public class Model {
 			}
 			if(nonDup){
 				clusters.add(i, new MacroCluster(centroid,i,c));
+				System.out.println("Centroid of cluster " + i + " is " + centroid.getAbsoluteIndex());
 				i++;
 			}
 		}
@@ -88,6 +89,13 @@ public class Model {
 		for(DataPoint d: dataPoints){
 			attachToNearest(d);
 		}
+		/*for(DataPoint d: dataPoints){
+			System.out.println("Point " + d.getAbsoluteIndex() + " is in cluster " + d.getClusterIndex());
+		}/*
+		i = 0;
+		/*for(MacroCluster c : clusters){
+			System.out.println("Values for cluster " + (i++) +  ":" +c.calcEMScore());
+		}*/
 		expectationMinimisation(clusters,dataPoints);
 		return clusters;
 		
@@ -99,16 +107,25 @@ public class Model {
 		int iterations = 0;
 		while(pointsChanged > 0){
 			pointsChanged = 0;
+			int changedByRecalcCent = 0;
 			//recalculate the cluster centroids based on the datapoints in the clusters
 			for(int i = 0; i < k; i++){
 				DataPoint newCentroid = clusters.get(i).recalculateCentroid();
+				System.out.print("New centroid for cluster " + i +": " );
+				for(DataType d: clusters.get(i).getCentroid().getData()){
+					if(d instanceof IntegerData){
+						System.out.print(((IntegerData)d).getRaw() + " ");
+					}
+				}
+				System.out.println();
 				clusters.set(i, new MacroCluster(newCentroid,i,c));
 			}
 			//attach all points to position geometrically nearest to them
 			for(DataPoint d: dataPoints){
 				int prevSmallIndex = d.getClusterIndex();
 				attachToNearest(d);
-				if(!d.isLabeled() && d.getClusterIndex() != prevSmallIndex){
+				if(d.getClusterIndex() != prevSmallIndex){
+					changedByRecalcCent++;
 					pointsChanged++;
 				}
 			}
@@ -124,15 +141,13 @@ public class Model {
 						if(d.getClusterIndex() != i){
 							MacroCluster prospective = clusters.get(i);
 							
-							double oldImpurity = prospective.calcImpurity();
-							double oldLabelledDispersion = prospective.labelledDispersion();
-							double oldScore = oldImpurity*oldLabelledDispersion + current.calcImpurity()*current.labelledDispersion(); ;
+							double oldScore = prospective.calcEMScore() + current.calcEMScore();
 							prospective.attachPoint(d);
 							if(!current.removePoint(d)){
 								System.out.println("Could not remove point requested.");
 							}
-							double newScore = prospective.calcImpurity()*prospective.labelledDispersion() + 
-									current.calcImpurity()*current.labelledDispersion();
+							double newScore = prospective.calcEMScore() + 
+									current.calcEMScore();
 							if(oldScore - newScore > bestImprove){
 								bestCluster = i;
 							}
@@ -156,10 +171,16 @@ public class Model {
 			double totalValue = 0;
 			for(int i = 0; i < k; i++){
 				MacroCluster clust = clusters.get(i);
-				totalValue += clust.calcImpurity()*clust.labelledDispersion() + clust.unLabelledDispersion();
-				System.out.println("Values for cluster " + i + ": "+ clust.calcImpurity() +" "+ clust.labelledDispersion() +" "+ clust.unLabelledDispersion());
+				totalValue += clust.calcEMScore();
+				System.out.println("Values for cluster " + i + ": "+ clust.calcEMScore());
 			}
 			System.out.println("Total Value for EM: " + totalValue);
+			System.out.println("Points changed: " + pointsChanged);
+			System.out.println("Points changed by the change in centroids: " + changedByRecalcCent);
+			/*for(DataPoint d: dataPoints){
+				System.out.println("Point " + d.getAbsoluteIndex() + " is in cluster " + d.getClusterIndex());
+			}*/
+			System.out.println("Iterations: " + iterations);
 		}
 		
 	}
