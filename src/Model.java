@@ -40,7 +40,7 @@ public class Model {
 			//labelled points will be in cluster base+ 
 			HashMap<Integer,Integer> classToClusterLabelled = new HashMap<Integer,Integer>();
 			HashMap<Integer,Integer> classToClusterUnlabelled = new HashMap<Integer,Integer>();
-			ArrayList<DataPoint> points = m.getDataPoints();
+			LinkedList<DataPoint> points = m.getDataPoints();
 			for(DataPoint p: points){
 				if(p.isLabeled()){
 					if(classToClusterLabelled.containsKey(p.getLabel())){
@@ -67,10 +67,21 @@ public class Model {
 		ArrayList<MacroCluster> clusters = new ArrayList<MacroCluster>(k);
 		this.macroClusters = clusters;
 		ArrayList<DataPoint> dataPoints = dataChunk.getDataPointArray();
-		//randomly select points to be the initial centroids of the k clusters.
-		for(int i = 0; i < k; i++){
-			DataPoint centroid = dataPoints.get((int)twister.nextDouble()*k);
-			clusters.add(i, new MacroCluster(centroid,c));
+		//randomly select points to be the initial centroids of the k clusters.]
+		int i = 0;
+		while(i < k){
+			DataPoint centroid = dataPoints.get(Math.abs(twister.nextInt()) % dataChunk.getChunkSize());
+			boolean nonDup = true;
+			for(int j = 0; j < i; j++){
+				if(centroid.getDistanceValue(clusters.get(j).getCentroid()) == 0){
+					nonDup = false;
+					break;
+				}
+			}
+			if(nonDup){
+				clusters.add(i, new MacroCluster(centroid,i,c));
+				i++;
+			}
 		}
 		
 		//initialise all dataPoints to cluster with nearest centroid.
@@ -91,7 +102,7 @@ public class Model {
 			//recalculate the cluster centroids based on the datapoints in the clusters
 			for(int i = 0; i < k; i++){
 				DataPoint newCentroid = clusters.get(i).recalculateCentroid();
-				clusters.set(i, new MacroCluster(newCentroid,c));
+				clusters.set(i, new MacroCluster(newCentroid,i,c));
 			}
 			//attach all points to position geometrically nearest to them
 			for(DataPoint d: dataPoints){
@@ -146,7 +157,9 @@ public class Model {
 			for(int i = 0; i < k; i++){
 				MacroCluster clust = clusters.get(i);
 				totalValue += clust.calcImpurity()*clust.labelledDispersion() + clust.unLabelledDispersion();
+				System.out.println("Values for cluster " + i + ": "+ clust.calcImpurity() +" "+ clust.labelledDispersion() +" "+ clust.unLabelledDispersion());
 			}
+			System.out.println("Total Value for EM: " + totalValue);
 		}
 		
 	}
@@ -156,7 +169,8 @@ public class Model {
 		int smallIndex = 0;
 		//see which centroid is closest
 		for(int i = 0; i < k; i++){
-			double currentDistance = macroClusters.get(i).getCentroid().getDistanceValue(d) ;
+			double currentDistance = macroClusters.get(i).getCentroid().getDistanceValue(d);
+			//System.out.println("Current Distance:" + currentDistance);
 			if(currentDistance < minDistance){
 				minDistance = currentDistance;
 				smallIndex = i;
@@ -164,6 +178,8 @@ public class Model {
 		}
 		//add to cluster nearest
 		macroClusters.get(smallIndex).attachPoint(d);
+		//System.out.println("Attached point " + d.getAbsoluteIndex() + " to cluster " + smallIndex);
+		//System.out.println("Distance to cluster: " + minDistance);
 		return;
 	}
 	

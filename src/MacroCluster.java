@@ -1,28 +1,35 @@
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedList;
 
 
 public class MacroCluster extends Cluster{
+	private int clusterIndex;
 	private DataPoint labelledCentroid;
 	private int labelledPointCount;
-	private ArrayList<DataPoint> labelledPoints;
-	private ArrayList<DataPoint> unLabelledPoints;
+	private LinkedList<DataPoint> labelledPoints;
+	private LinkedList<DataPoint> unLabelledPoints;
 	private int[] classCounter;
 	private int[] predictedClassCounter;
 	private int c;
+	private double unlabelledDispersion;
+	private double labelledDispersion;
 	private double geometricScore;
 	private double impurityScore;
 	
 	
-	public MacroCluster(DataPoint centroid, int c){
+	public MacroCluster(DataPoint centroid, int index, int c){
 		super(centroid);
+		this.clusterIndex = index;
 		this.centroid = centroid;
-		labelledPoints = new ArrayList<DataPoint>();
-		unLabelledPoints = new ArrayList<DataPoint>();
+		labelledPoints = new LinkedList<DataPoint>();
+		unLabelledPoints = new LinkedList<DataPoint>();
 		classCounter = new int[c];
 		predictedClassCounter = new int[c];
 		totalPoints = 0;
+		labelledDispersion = 0;
+		unlabelledDispersion = 0;
 		this.c = c;
 	}
 	public DataPoint getCentroid() {
@@ -49,11 +56,13 @@ public class MacroCluster extends Cluster{
 			}
 			labelledPointCount--;
 			classCounter[d.getLabel()]--;
+			labelledDispersion -= centroid.getDistanceValue(d);
 		}else{
 			if(!unLabelledPoints.remove(d)){
 				return false;
 			}
 			predictedClassCounter[d.getPredictedLabel()]--;
+			unlabelledDispersion -= centroid.getDistanceValue(d);
 		}
 		if(!points.remove(d)){
 			return false;
@@ -67,11 +76,14 @@ public class MacroCluster extends Cluster{
 			labelledPointCount++;
 			labelledPoints.add(d);
 			classCounter[d.getLabel()]++;
+			labelledDispersion += centroid.getDistanceValue(d);
 		}else{
 			unLabelledPoints.add(d);
 			predictedClassCounter[d.getPredictedLabel()]++;
+			unlabelledDispersion += centroid.getDistanceValue(d);
 		}
 		totalPoints++;
+		d.setClusterIndex(clusterIndex);
 		points.add(d);
 		return;
 	}
@@ -82,33 +94,38 @@ public class MacroCluster extends Cluster{
 	public double calcImpurity(){
 		//calculate adc
 		int adc = 0;
-		for(DataPoint d: labelledPoints){
-			adc += (labelledPointCount - classCounter[d.getLabel()]);
+		for(int i = 0; i < c; i++){
+			adc += (labelledPointCount - classCounter[i]);
 		}
+		//System.out.println("In impurity calc - adc after calc:" + adc);
 		double entropy = 0;
 		for(int i = 0; i < c; i++){
-			double prior = (double)classCounter[i]/labelledPointCount;
-			entropy += (-prior*Math.log(prior)/Math.log(2));
+			double prior;
+			if(labelledPointCount == 0){
+				prior = 0;
+			}else{
+				prior = (double)classCounter[i]/labelledPointCount;
+				entropy += (-1*prior*(Math.log(prior)/Math.log(2)));
+			}
+			//System.out.println("Prior: " + prior);
+			
 		}
 		entropy *= adc;
+		//System.out.println("Entropy: " + entropy);
 		this.impurityScore = entropy;
 		return entropy;
 	}
 	
+	public double getImpurity(){
+		return impurityScore;
+	}
+	
 	public double unLabelledDispersion(){
-		double dispersion = 0;
-		for(DataPoint d: unLabelledPoints){
-			dispersion += centroid.getDistanceValue(d);
-		}
-		return dispersion;
+		return unlabelledDispersion;
 	}
 	
 	public double labelledDispersion(){
-		double dispersion = 0;
-		for(DataPoint d: labelledPoints){
-			dispersion += centroid.getDistanceValue(d);
-		}
-		return dispersion;
+		return labelledDispersion;
 	}
 	
 	

@@ -13,9 +13,8 @@ public class Main {
 		BufferedReader br = new BufferedReader(new FileReader("input/kddcup.data_10_percent_corrected"));
 		MersenneTwister twist = new MersenneTwister();
 		int vectorLength = 0;	//length of datavector
-		int chunkSize = 100;	//chunksize
+		int chunkSize = 10000;	//chunksize
 		int k = 5;	//number of clusters
-		int c;	//number of classes
 		double percentUnlabelled = 0;
 		try {
 			vectorLength = br.readLine().split(",").length;
@@ -27,6 +26,7 @@ public class Main {
 		DataProcessor d = new DataProcessor(vectorLength, percentUnlabelled,br);
 		DataChunk chunk = new DataChunk(chunkSize, d,twist);
 		CategoricalData catData = (CategoricalData)chunk.getDataPointArray().get(0).getData().get(vectorLength-1);
+		System.out.println("Number of classes: " + catData.getNumCategories(vectorLength-1));
 		Model m = new Model(twist, chunk,k, catData.getNumCategories(vectorLength-1));
 		
 	}

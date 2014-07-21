@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.LinkedList;
 
 public class MicroCluster extends Cluster{
 	
@@ -7,7 +8,7 @@ public class MicroCluster extends Cluster{
 
 	public MicroCluster(DataPoint centroid, boolean labelled, int label){
 		super(centroid);
-		points = new ArrayList<DataPoint>();
+		points = new LinkedList<DataPoint>();
 		this.labelled = labelled;
 		totalPoints = 0;
 		microClusterLabel = label;

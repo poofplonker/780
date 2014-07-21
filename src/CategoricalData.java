@@ -62,8 +62,8 @@ public class CategoricalData extends DataType{
 
 	public int numerValue() {
 		if (!dict.get(index).containsKey(stringValue)){
-			categoryArray[index]++;
 			dict.get(index).put(stringValue, (int) categoryArray[index]);
+			categoryArray[index]++;
 		}
 		return dict.get(index).get(stringValue);
 	}

@@ -65,9 +65,9 @@ public class DataProcessor {
 		DataPoint d;
 		//simulation of unlabelled data
 		if(twister.nextDouble() < percentUnlabelled){
-			d = new DataPoint(dataValues, 0);
+			d = new DataPoint(dataValues, ((CategoricalData)dataValues.get(vectorLength-1)).numerValue(), false);
 		}else{
-			d = new DataPoint(dataValues,((CategoricalData)dataValues.get(vectorLength-1)).numerValue());
+			d = new DataPoint(dataValues,((CategoricalData)dataValues.get(vectorLength-1)).numerValue(),true);
 		}
 		recordsProcessed++;
 		return d;

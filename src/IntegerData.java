@@ -61,7 +61,12 @@ public class IntegerData extends DataType{
 	}
 	
 	public double normalise(int value){
-		return (double)value/(getMax()-getMin());
+		if(getMax() == getMin()){
+			return 0;
+		}else{
+			return (double)value/(getMax()-getMin());
+		}
+		
 	}
 	
 	public int getRaw(){

@@ -61,8 +61,12 @@ public class DoubleData extends DataType{
 		}
 	}
 
-	public double normalise(double input){
-		return (double)input/(getMax()-getMin());
+	public double normalise(double value){
+		if(getMax() == getMin()){
+			return 0;
+		}else{
+			return (double)value/(getMax()-getMin());
+		}
 	}
 	
 	public double getRaw(){

@@ -1,16 +1,17 @@
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedList;
 
 
 public class Cluster {
 	
-	protected ArrayList<DataPoint> points;
+	protected LinkedList<DataPoint> points;
 	protected DataPoint centroid;
 	protected int totalPoints;
 	
 	public Cluster(DataPoint centroid){
 		this.centroid = centroid;
-		points = new ArrayList<DataPoint>();
+		points = new LinkedList<DataPoint>();
 		totalPoints = 0;
 	}
 	
@@ -21,7 +22,7 @@ public class Cluster {
 		int[] integerRaws = new int[length];
 		ArrayList<HashMap<String,Integer>> categoricalCounts = new ArrayList<HashMap<String,Integer>>(length);
 		for(int i =0; i < length; i++){
-			categoricalCounts.set(i,new HashMap<String,Integer>());
+			categoricalCounts.add(i,new HashMap<String,Integer>());
 		}
 		
 		for(DataPoint d: points){
@@ -64,11 +65,12 @@ public class Cluster {
 				newCentroidData.add(i, new CategoricalData(common,i,centroid.getVectorLength()));
 			}
 		}
-		newCentroid = new DataPoint(newCentroidData,length);
+		//this centroid has no actual class label. 
+		newCentroid = new DataPoint(newCentroidData,-1,false);
 		return newCentroid;
 	}
 	
-	public ArrayList<DataPoint> getDataPoints(){
+	public LinkedList<DataPoint> getDataPoints(){
 		return points;
 	}
 }
