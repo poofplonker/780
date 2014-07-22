@@ -15,6 +15,7 @@ public class MacroCluster extends Cluster{
 	private int c;
 	private double unlabelledDispersion;
 	private double labelledDispersion;
+	private double dispersion;
 	private double geometricScore;
 	private double impurityScore;
 	
@@ -30,6 +31,7 @@ public class MacroCluster extends Cluster{
 		totalPoints = 0;
 		labelledDispersion = 0;
 		unlabelledDispersion = 0;
+		dispersion = 0;
 		this.c = c;
 	}
 	public DataPoint getCentroid() {
@@ -64,6 +66,7 @@ public class MacroCluster extends Cluster{
 			predictedClassCounter[d.getPredictedLabel()]--;
 			unlabelledDispersion -= centroid.getDistanceValue(d);
 		}
+		dispersion -= centroid.getDistanceValue(d);
 		if(!points.remove(d)){
 			return false;
 		}
@@ -82,6 +85,7 @@ public class MacroCluster extends Cluster{
 			predictedClassCounter[d.getPredictedLabel()]++;
 			unlabelledDispersion += centroid.getDistanceValue(d);
 		}
+		dispersion += centroid.getDistanceValue(d);
 		totalPoints++;
 		d.setClusterIndex(clusterIndex);
 		points.add(d);
@@ -92,7 +96,7 @@ public class MacroCluster extends Cluster{
 	 * points, not any of the other weights related to the purity of the cluster, etc.*/
 
 	public double calcEMScore(){
-		double score = unlabelledDispersion;
+		double score = dispersion;
 		for(DataPoint d: labelledPoints){
 			double instance = centroid.getDistanceValue(d)*calcImpurity(d.getLabel());
 			score += instance;
