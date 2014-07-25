@@ -77,11 +77,19 @@ public class IntegerData extends DataType{
 		return normalise(rawValue);
 	}
 	@Override
-	public double distance(DataType d) {
+	public double normDistance(DataType d) {
 		if(!(d instanceof IntegerData)){
 			return -1;
 		}
 		return Math.abs(getNormalised() - ((IntegerData)d).getNormalised());
+	}
+	
+	@Override
+	public double rawDistance(DataType d) {
+		if(!(d instanceof IntegerData)){
+			return -1;
+		}
+		return Math.abs(getRaw() - ((IntegerData)d).getRaw());
 	}
 
 }

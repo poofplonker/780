@@ -10,16 +10,18 @@ public class DataPoint {
 	private int predictedLabel = -1;	//-1 means no prediction has been made.
 	private final int actualLabel;		
 	private boolean isLabeled;
+	private DataType classLabel;
 	private ArrayList<DataType> data;	//Data with category and such
 	private int vectorLength;
 	private int clusterIndex;			//Which cluster the dataPoint is in. 
 	
-	public DataPoint(ArrayList<DataType> data, int i,boolean isLabeled){
+	public DataPoint(ArrayList<DataType> data, DataType classLabel, int i,boolean isLabeled){
 		this.actualLabel = i;
 		this.data = data;
 		this.vectorLength = data.size();
 		this.clusterIndex = -1;
 		this.isLabeled = isLabeled;
+		this.classLabel = classLabel;
 		this.absoluteIndex = num_dataPoints++;
 	}
 	
@@ -72,6 +74,7 @@ public class DataPoint {
 			value += difference[i]*difference[i];
 		}
 		//System.out.println("Value in getDistanceValue:" + value);
+		//System.out.println("Distance between " + this + " and " +other + " is " + Math.sqrt(value));
 		return Math.sqrt(value);
 	}
 	
@@ -80,9 +83,34 @@ public class DataPoint {
 		double[] distanceVector = new double[this.vectorLength];
 		for(int i = 0; i < this.vectorLength; i++){
 			
-			distanceVector[i] = this.data.get(i).distance(arrayList.get(i));
+			distanceVector[i] = this.data.get(i).rawDistance(arrayList.get(i));
 			//System.out.println("Distance in dimension "+ i + ": " + distanceVector[i]);
 		}
 		return distanceVector;
+	}
+	
+	public String toString(){
+		String printer = "";
+		for(DataType d: data){
+			if(d instanceof IntegerData){
+				printer += Integer.toString(((IntegerData)d).getRaw());
+				printer += " ";
+			}
+			else if(d instanceof DoubleData){
+				printer += Double.toString(((DoubleData)d).getRaw());
+				printer += " ";
+			}else{
+				printer += ((CategoricalData)d).getRaw();
+				printer += " ";
+			}
+			
+		}
+		return printer;
+		
+	}
+
+	public DataType getClassLabel() {
+		// TODO Auto-generated method stub
+		return classLabel;
 	}
 }

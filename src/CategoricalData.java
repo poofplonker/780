@@ -40,7 +40,17 @@ public class CategoricalData extends DataType{
 	}
 
 
-	public double distance(DataType d) throws IllegalArgumentException{
+	public double normDistance(DataType d) throws IllegalArgumentException{
+		if(!(d instanceof CategoricalData)){
+			return -1;
+		}
+		if ((int)this.numerValue() == (int)((CategoricalData)d).normalisedValue()){
+			return 0;
+		}
+		return 1;
+	}
+	
+	public double rawDistance(DataType d) throws IllegalArgumentException{
 		if(!(d instanceof CategoricalData)){
 			return -1;
 		}

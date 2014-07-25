@@ -77,11 +77,19 @@ public class DoubleData extends DataType{
 		return normalise(rawValue);
 	}
 
-	public double distance(DataType d) {
+	public double normDistance(DataType d) {
 		if(!(d instanceof DoubleData)){
 			return -1;
 		}
 		return Math.abs(getNormalised() - ((DoubleData)d).getNormalised());
+
+	}
+	
+	public double rawDistance(DataType d){
+		if(!(d instanceof DoubleData)){
+			return -1;
+		}
+		return Math.abs(getRaw() - ((DoubleData)d).getRaw());
 
 	}
 

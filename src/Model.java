@@ -86,7 +86,7 @@ public class Model {
 			}
 			if(nonDup){
 				clusters.add(i, new MacroCluster(centroid,i,c));
-				System.out.println("Centroid of cluster " + i + " is " + centroid.getAbsoluteIndex());
+				//System.out.println("Centroid of cluster " + i + " is " + centroid.getAbsoluteIndex());
 				i++;
 			}
 		}
@@ -115,7 +115,7 @@ public class Model {
 	}
 
 	private void expectationMinimisation(ArrayList<MacroCluster> clusters, ArrayList<DataPoint> dataPoints) {
-		
+		double prevEm = 0;
 		int pointsChanged = 1;
 		int iterations = 0;
 		while(pointsChanged > 0){
@@ -124,12 +124,7 @@ public class Model {
 			//recalculate the cluster centroids based on the datapoints in the clusters
 			for(int i = 0; i < k; i++){
 				DataPoint newCentroid = clusters.get(i).recalculateCentroid();
-				System.out.print("New centroid for cluster " + i +": " );
-				for(DataType d: newCentroid.getData()){
-					if(d instanceof IntegerData){
-						System.out.print(((IntegerData)d).getRaw() + " ");
-					}
-				}
+				System.out.print("New centroid for cluster " + i +": " + newCentroid);
 				System.out.println();
 				clusters.set(i, new MacroCluster(newCentroid,i,c));
 			}
@@ -140,6 +135,7 @@ public class Model {
 				if(d.getClusterIndex() != prevSmallIndex){
 					changedByRecalcCent++;
 					pointsChanged++;
+					System.out.println("Point " + d.getAbsoluteIndex() + " was in " + prevSmallIndex + " and is now in " + d.getClusterIndex());
 				}
 			}
 			//for every labelled datapoint, try it out in every other cluster. Put the point in the cluster which 
@@ -166,6 +162,7 @@ public class Model {
 								bestImprove = oldScore - newScore;
 							}
 							current.attachPoint(d);
+							
 							if(!prospective.removePoint(d)){
 								System.out.println("Could not remove point requested");
 							}
@@ -178,6 +175,7 @@ public class Model {
 							System.out.println("Could not remove point requested");
 						}
 						clusters.get(bestCluster).attachPoint(d);
+						System.out.println("Point " + d.getAbsoluteIndex() + " is now in " + d.getClusterIndex());
 					}
 				}
 			}
@@ -192,9 +190,14 @@ public class Model {
 			System.out.println("Total Value for EM: " + totalValue);
 			System.out.println("Points changed: " + pointsChanged);
 			System.out.println("Points changed by the change in centroids: " + changedByRecalcCent);
-			/*for(DataPoint d: dataPoints){
+			for(DataPoint d: dataPoints){
 				System.out.println("Point " + d.getAbsoluteIndex() + " is in cluster " + d.getClusterIndex());
-			}*/
+			}
+			System.out.println("PrevEm: " + prevEm+", diff:" + (totalValue-prevEm));
+			if(Math.abs(totalValue - prevEm) < 0.01){
+				break;
+			}
+			prevEm = totalValue;
 			//System.out.println("Iterations: " + iterations);
 		}
 		
@@ -214,8 +217,8 @@ public class Model {
 		}
 		//add to cluster nearest
 		macroClusters.get(smallIndex).attachPoint(d);
-		//System.out.println("Attached point " + d.getAbsoluteIndex() + " to cluster " + smallIndex);
-		//System.out.println("Distance to cluster: " + minDistance);
+		System.out.println("Attached point " + d.getAbsoluteIndex() + " to cluster " + smallIndex);
+		System.out.println("Distance to cluster: " + minDistance);
 		return;
 	}
 	

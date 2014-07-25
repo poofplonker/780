@@ -29,7 +29,6 @@ public class Cluster {
 			for(int i =0; i < length; i++){
 			DataType dat = d.getData().get(i);
 				if(dat instanceof DoubleData){
-					double rawValue = 
 					doubleRaws[i] += ((DoubleData)dat).getRaw();
 				}else if(dat instanceof IntegerData){
 					integerRaws[i] += ((IntegerData)dat).getRaw();
@@ -78,7 +77,7 @@ public class Cluster {
 		}
 		
 		//this centroid has no actual class label. 
-		newCentroid = new DataPoint(newCentroidData,-1,false);
+		newCentroid = new DataPoint(newCentroidData,null,-1,false);
 		this.centroid = newCentroid;
 		return newCentroid;
 	}

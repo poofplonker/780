@@ -10,11 +10,11 @@ import cern.jet.random.engine.MersenneTwister;
 public class Main {
 
 	public static void main(String[] args) throws FileNotFoundException {
-		BufferedReader br = new BufferedReader(new FileReader("input/kdduniq.data"));
+		BufferedReader br = new BufferedReader(new FileReader("input/EMtest1.txt"));
 		MersenneTwister twist = new MersenneTwister(new java.util.Date());
 		int vectorLength = 0;	//length of datavector
-		int chunkSize = 1000;	//chunksize
-		int k = 4;	//number of clusters
+		int chunkSize = 6;	//chunksize
+		int k = 3;	//number of clusters
 		double percentUnlabelled = 0;
 		try {
 			vectorLength = br.readLine().split(",").length;
@@ -25,10 +25,13 @@ public class Main {
 			e.printStackTrace();
 		}
 		DataProcessor d = new DataProcessor(vectorLength, percentUnlabelled,br);
+		
 		DataChunk chunk = new DataChunk(chunkSize, d,twist);
-		CategoricalData catData = (CategoricalData)chunk.getDataPointArray().get(0).getData().get(vectorLength-1);
-		System.out.println("Number of classes: " + catData.getNumCategories(vectorLength-1));
-		Model m = new Model(twist, chunk,k, catData.getNumCategories(vectorLength-1));
+		vectorLength = chunk.getDataPointArray().get(0).getData().size();
+		System.out.println("Length now: " + vectorLength);
+		CategoricalData catData = (CategoricalData)chunk.getDataPointArray().get(0).getClassLabel();
+		System.out.println("Number of classes: " + catData.getNumCategories(vectorLength));
+		Model m = new Model(twist, chunk,k, catData.getNumCategories(vectorLength));
 		
 	}
 

@@ -63,11 +63,14 @@ public class DataProcessor {
 			}
 		}
 		DataPoint d;
+		//remove class label
+		DataType classLabel = dataValues.remove(vectorLength-1);
+		
 		//simulation of unlabelled data
 		if(twister.nextDouble() < percentUnlabelled){
-			d = new DataPoint(dataValues, ((CategoricalData)dataValues.get(vectorLength-1)).numerValue(), false);
+			d = new DataPoint(dataValues, classLabel, ((CategoricalData)classLabel).numerValue(), false);
 		}else{
-			d = new DataPoint(dataValues,((CategoricalData)dataValues.get(vectorLength-1)).numerValue(),true);
+			d = new DataPoint(dataValues, classLabel,((CategoricalData)classLabel).numerValue(),true);
 		}
 		recordsProcessed++;
 		return d;
