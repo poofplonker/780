@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedList;
 
@@ -74,6 +75,7 @@ public class Model {
 		int base = 0;
 		//precompute the number of centroids per class
 		int[] centroidCounter = new int[c];
+		ArrayList<DataPoint> dataPoints = dataChunk.getDataPointArray();
 		int[] classCounter = dataChunk.getClassCounter(c);
 		int totalAssigned = 0;
 		for(int j = 0; j < c; j++){
@@ -84,41 +86,50 @@ public class Model {
 			centroidCounter[Math.abs(twister.nextInt()) % c]++;
 			totalAssigned++;
 		}
+		ArrayList<LinkedList<DataPoint>> classPoints = new ArrayList<LinkedList<DataPoint>>(k);
+		for(int i = 0; i < k; i++){
+			classPoints.add(i,new LinkedList<DataPoint>());
+		}
+		for(int i = 0; i < dataPoints.size(); i++){
+			DataPoint currentPoint = dataPoints.get(i);
+			classPoints.get(currentPoint.getLabel()).add(currentPoint);
+		}
 		for(int j = 0; j < c; j++){
 			int i = 0; //number of clusters initialised
-			ArrayList<DataPoint> dataPoints = dataChunk.getDataPointArray();
+			
 			
 			
 			//we initialise the number of clusters for a class proportional to the represet
 			int representation = centroidCounter[j];
 			System.out.println("Class " + j + " has " + representation + " clusters to initiate");
-			ArrayList<DataPoint> thisClassPoints = new ArrayList<DataPoint>(classCounter[j]);
+			LinkedList<DataPoint> thisClassPoints = classPoints.get(j);
 			
 			//get all points of this class
-			for(int k = 0; k < dataPoints.size(); k++){
-				if(dataPoints.get(k).getLabel() == j){
-					thisClassPoints.add(dataPoints.get(k));
-				}
-			}
+
 			LinkedList<DataPoint> visitedSet = new LinkedList<DataPoint>();
 			if(thisClassPoints.size() > representation){
 			//employ farthest first heuristic to select the points from this class
 				
 				boolean[] contained = new boolean[thisClassPoints.size()];
 				int index = Math.abs(twister.nextInt()) % thisClassPoints.size();
-				DataPoint centroid = dataPoints.get(index);
+				//System.out.println("Initial Index : " + index);
+				DataPoint centroid = thisClassPoints.get(index);
 				visitedSet.add(centroid);
+				contained[index] = true;
 				i++;
+				//System.out.println("After 1 addition, size of visitedSet " + visitedSet.size() + " and size of classPoints: " + thisClassPoints.size());
 				while(i < representation){
 					double maxDistance = 0;
 					int maxIndex = -1;
 					for(int d = 0; d < thisClassPoints.size(); d++){
 						if(contained[d] == true){
-							break;
+							System.out.println(d + " broken");
+							continue;
 						}
 						double thisDistance = 0;
 						for(DataPoint c : visitedSet){
 							 thisDistance += c.getDistanceValue(thisClassPoints.get(d));
+							 //System.out.println("Distance from point " + c.getAbsoluteIndex() + " to point " + thisClassPoints.get(d).getAbsoluteIndex() + " : " + c.getDistanceValue(thisClassPoints.get(d)));
 						}
 						if(thisDistance > maxDistance){
 							maxDistance = thisDistance;
@@ -129,7 +140,6 @@ public class Model {
 					visitedSet.add(thisClassPoints.get(maxIndex));
 					i++;
 				}
-				i = 0;
 				
 			}else{
 				i = 0;
@@ -146,6 +156,7 @@ public class Model {
 				}
 				
 			}
+			i = 0;
 			for(DataPoint d: visitedSet){
 				macroClusters.add(new MacroCluster(d,i+base,c));
 				i++;
@@ -161,23 +172,19 @@ public class Model {
 		//Select centroids proportionate to class representation for initialisation.
 		
 		initialiseClusters(twister);
+		for(int i = 0; i < k; i++){
+			System.out.println("Macrocluster "+ i + " initial centroid: " + macroClusters.get(i).getCentroid());
+		}
 		//initialise all dataPoints to cluster with nearest centroid.
+		double totalValue = 0;
 		for(DataPoint d: dataPoints){
-			attachToNearest(d);
+			totalValue += attachToNearestImp(d);
 		}
 		for(DataPoint d: dataPoints){
 			System.out.println("Point " + d.getAbsoluteIndex() + " is in cluster " + d.getClusterIndex());
 		}
-		int i = 0;
-		/*for(MacroCluster c : clusters){
-			System.out.println("Values for cluster " + (i++) +  ":" +c.calcEMScore());
-		}*/
-		double totalValue = 0;
-		for(i = 0; i < k; i++){
-			MacroCluster clust = clusters.get(i);
-			totalValue += clust.calcEMScore();
-			//System.out.println("Values for cluster " + i + ": "+ clust.calcEMScore());
-		}
+		
+
 		System.out.println("Total Value for EM: " + totalValue);
 		expectationMinimisation(clusters,dataPoints);
 		return clusters;
@@ -199,80 +206,53 @@ public class Model {
 				clusters.set(i, new MacroCluster(newCentroid,i,c));
 			}
 			//attach all points to position geometrically nearest to them
+			Collections.shuffle(dataPoints);
+			double totalValue = 0;
 			for(DataPoint d: dataPoints){
 				int prevSmallIndex = d.getClusterIndex();
-				attachToNearest(d);
+				totalValue += attachToNearestImp(d);
 				if(d.getClusterIndex() != prevSmallIndex){
 					changedByRecalcCent++;
 					pointsChanged++;
 					System.out.println("Point " + d.getAbsoluteIndex() + " was in " + prevSmallIndex + " and is now in " + d.getClusterIndex());
 				}
 			}
-			//for every labelled datapoint, try it out in every other cluster. Put the point in the cluster which 
-			//most reduces the impurity and distance.
-			for(DataPoint d: dataPoints){
-				int bestCluster = d.getClusterIndex();
-				double bestImprove = 0;
-				if(d.isLabeled()){
-					MacroCluster current = clusters.get(d.getClusterIndex());
-					for(int i = 0; i < k; i++){
-						
-						if(d.getClusterIndex() != i){
-							MacroCluster prospective = clusters.get(i);
-							
-							double oldScore = prospective.calcEMScore() + current.calcEMScore();
-							prospective.attachPoint(d);
-							if(!current.removePoint(d)){
-								System.out.println("Could not remove point requested.");
-							}
-							double newScore = prospective.calcEMScore() + 
-									current.calcEMScore();
-							if(oldScore - newScore > bestImprove){
-								bestCluster = i;
-								bestImprove = oldScore - newScore;
-							}
-							current.attachPoint(d);
-							
-							if(!prospective.removePoint(d)){
-								System.out.println("Could not remove point requested");
-							}
-						}
-					}
-					if(bestImprove > 0){
-						pointsChanged++;
-						//System.out.println("BestImprove: " + bestImprove);
-						if(!current.removePoint(d)){
-							System.out.println("Could not remove point requested");
-						}
-						clusters.get(bestCluster).attachPoint(d);
-						System.out.println("Point " + d.getAbsoluteIndex() + " is now in " + d.getClusterIndex());
-					}
-				}
-			}
+		
 			iterations++;
 			//Total value calculated to ensure that expectation minimisation is in fact converging.
-			double totalValue = 0;
-			for(int i = 0; i < k; i++){
-				MacroCluster clust = clusters.get(i);
-				totalValue += clust.calcEMScore();
-				//System.out.println("Values for cluster " + i + ": "+ clust.calcEMScore());
-			}
+			
 			System.out.println("Total Value for EM: " + totalValue);
 			System.out.println("Points changed: " + pointsChanged);
-			System.out.println("Points changed by the change in centroids: " + changedByRecalcCent);
+			//System.out.println("Points changed by the change in centroids: " + changedByRecalcCent);
 			for(DataPoint d: dataPoints){
 				System.out.println("Point " + d.getAbsoluteIndex() + " is in cluster " + d.getClusterIndex());
 			}
 			System.out.println("PrevEm: " + prevEm+", diff:" + (totalValue-prevEm));
-			if(Math.abs(totalValue - prevEm) < 0.01){
-				break;
-			}
 			prevEm = totalValue;
 			//System.out.println("Iterations: " + iterations);
 		}
 		
 	}
 
+	private double attachToNearestImp(DataPoint d){
+		double minDistance = Double.MAX_VALUE;
+		int smallIndex = 0;
+		//see which centroid is closest
+		for(int i = 0; i < k; i++){
+			MacroCluster current = macroClusters.get(i);
+			double currentDistance = current.calcEMScore(d);
+			//System.out.println("Current EMS:" + currentDistance);
+			if(currentDistance < minDistance){
+				minDistance = currentDistance;
+				smallIndex = i;
+			}
+		}
+		//add to cluster nearest
+		macroClusters.get(smallIndex).attachPoint(d);
+		//System.out.println("Attached point " + d.getAbsoluteIndex() + " to cluster " + smallIndex);
+		//System.out.println("Distance to cluster: " + minDistance);
+		return minDistance;
+	}
 	private void attachToNearest(DataPoint d) {
 		double minDistance = Double.MAX_VALUE;
 		int smallIndex = 0;

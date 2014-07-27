@@ -14,7 +14,7 @@ public class Main {
 		MersenneTwister twist = new MersenneTwister(new java.util.Date());
 		int vectorLength = 0;	//length of datavector
 		int chunkSize = 6;	//chunksize
-		int k = 3;	//number of clusters
+		int k = 2;	//number of clusters
 		double percentUnlabelled = 0;
 		try {
 			vectorLength = br.readLine().split(",").length;

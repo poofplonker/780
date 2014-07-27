@@ -44,7 +44,7 @@ public class DataProcessor {
 			/*Both all Integers share min and max: Fix */
 			if (values[i].matches("-?\\d+")){
 				int result = Integer.parseInt(values[i]);
-				IntegerData data =  new IntegerData(result,i,vectorLength);
+				DoubleData data =  new DoubleData(result,i,vectorLength);
 				dataValues.add(i,data);
 				if(result > data.getMax()){
 					data.setMax(result);

@@ -61,7 +61,7 @@ public class MacroCluster extends Cluster{
 			labelledPointCount--;
 			classCounter[d.getLabel()]--;
 			labelledDispersion -= centroid.getDistanceValue(d);
-			calcADC();
+			//calcADC();
 		}else{
 			if(!unLabelledPoints.remove(d)){
 				return false;
@@ -88,7 +88,7 @@ public class MacroCluster extends Cluster{
 			unLabelledPoints.add(d);
 			predictedClassCounter[d.getPredictedLabel()]++;
 			unlabelledDispersion += centroid.getDistanceValue(d);
-			calcADC();
+			//calcADC();
 		}
 		dispersion += centroid.getDistanceValue(d);
 		totalPoints++;
@@ -101,16 +101,14 @@ public class MacroCluster extends Cluster{
 	/*recalculating the centroid  only takes into account the geometric position of the 
 	 * points, not any of the other weights related to the purity of the cluster, etc.*/
 
-	public double calcEMScore(){
-		double score = dispersion;
-		for(DataPoint d: labelledPoints){
-			double instance = centroid.getDistanceValue(d)*calcImpurity(d.getLabel());
-			score += instance;
-			//System.out.println("EMS score for point: " + instance);
-		}
+	public double calcEMScore(DataPoint d){
+		double instance = centroid.getDistanceValue(d)*(1+calcImpurity(d.getLabel()));
+
 		//System.out.println("Score for cluster: " + score);
-		return score;
+		return instance;
 	}
+	
+	
 	private double calcImpurity(int label){
 		//calculate adc
 		double entropy = 0;
@@ -122,9 +120,15 @@ public class MacroCluster extends Cluster{
 				entropy += (-1*prior*(Math.log(prior)/Math.log(2)));
 			}
 		}
+		double dc;
+		if(labelledPointCount == 0){
+			dc = 0;
+		}else{
+			dc = ((double)(labelledPointCount - classCounter[label]))/labelledPointCount;
+		}
 		//System.out.println("In impurity calc - adc after calc:" + adc);
-		//System.out.println("ADC: " + adc + " - Ent: " + entropy );
-		entropy *= adc;
+		//System.out.println("ADC: " + dc + " - Ent: " + entropy );
+		entropy *= dc;
 		//System.out.println("Entropy: " + entropy);
 		this.impurityScore = entropy;
 		return entropy;
