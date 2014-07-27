@@ -68,29 +68,99 @@ public class Model {
 			m.recalculateCentroid();
 		}
 	}
+	
+	//this is supposed to be based on class values in the entire dataset, not for datachunks. TBF
+	public void initialiseClusters(MersenneTwister twister){
+		int base = 0;
+		//precompute the number of centroids per class
+		int[] centroidCounter = new int[c];
+		int[] classCounter = dataChunk.getClassCounter(c);
+		int totalAssigned = 0;
+		for(int j = 0; j < c; j++){
+			centroidCounter[j] = (int)(k*classCounter[j])/dataChunk.getNumLabelledPoints();
+			totalAssigned += centroidCounter[j];
+		}
+		while(totalAssigned < k){
+			centroidCounter[Math.abs(twister.nextInt()) % c]++;
+			totalAssigned++;
+		}
+		for(int j = 0; j < c; j++){
+			int i = 0; //number of clusters initialised
+			ArrayList<DataPoint> dataPoints = dataChunk.getDataPointArray();
+			
+			
+			//we initialise the number of clusters for a class proportional to the represet
+			int representation = centroidCounter[j];
+			System.out.println("Class " + j + " has " + representation + " clusters to initiate");
+			ArrayList<DataPoint> thisClassPoints = new ArrayList<DataPoint>(classCounter[j]);
+			
+			//get all points of this class
+			for(int k = 0; k < dataPoints.size(); k++){
+				if(dataPoints.get(k).getLabel() == j){
+					thisClassPoints.add(dataPoints.get(k));
+				}
+			}
+			LinkedList<DataPoint> visitedSet = new LinkedList<DataPoint>();
+			if(thisClassPoints.size() > representation){
+			//employ farthest first heuristic to select the points from this class
+				
+				boolean[] contained = new boolean[thisClassPoints.size()];
+				int index = Math.abs(twister.nextInt()) % thisClassPoints.size();
+				DataPoint centroid = dataPoints.get(index);
+				visitedSet.add(centroid);
+				i++;
+				while(i < representation){
+					double maxDistance = 0;
+					int maxIndex = -1;
+					for(int d = 0; d < thisClassPoints.size(); d++){
+						if(contained[d] == true){
+							break;
+						}
+						double thisDistance = 0;
+						for(DataPoint c : visitedSet){
+							 thisDistance += c.getDistanceValue(thisClassPoints.get(d));
+						}
+						if(thisDistance > maxDistance){
+							maxDistance = thisDistance;
+							maxIndex = d;
+						}
+					}
+					contained[maxIndex] = true;
+					visitedSet.add(thisClassPoints.get(maxIndex));
+					i++;
+				}
+				i = 0;
+				
+			}else{
+				i = 0;
+				for(DataPoint d: thisClassPoints){
+					visitedSet.add(d);
+					i++;
+				}
+				while(i < representation){
+					int index = Math.abs(twister.nextInt()) % dataChunk.getChunkSize();
+					if(!dataPoints.get(index).isLabeled() && !visitedSet.contains(dataPoints.get(index))){
+						visitedSet.add(dataPoints.get(index));
+						i++;
+					}
+				}
+				
+			}
+			for(DataPoint d: visitedSet){
+				macroClusters.add(new MacroCluster(d,i+base,c));
+				i++;
+			}
+			base += representation;
+		}
+	}
 
 	public ArrayList<MacroCluster> clusterData(MersenneTwister twister){
 		ArrayList<MacroCluster> clusters = new ArrayList<MacroCluster>(k);
 		this.macroClusters = clusters;
 		ArrayList<DataPoint> dataPoints = dataChunk.getDataPointArray();
-		//randomly select points to be the initial centroids of the k clusters.]
-		int i = 0;
-		while(i < k){
-			DataPoint centroid = dataPoints.get(Math.abs(twister.nextInt()) % dataChunk.getChunkSize());
-			boolean nonDup = true;
-			for(int j = 0; j < i; j++){
-				if(centroid.getDistanceValue(clusters.get(j).getCentroid()) == 0){
-					nonDup = false;
-					break;
-				}
-			}
-			if(nonDup){
-				clusters.add(i, new MacroCluster(centroid,i,c));
-				//System.out.println("Centroid of cluster " + i + " is " + centroid.getAbsoluteIndex());
-				i++;
-			}
-		}
+		//Select centroids proportionate to class representation for initialisation.
 		
+		initialiseClusters(twister);
 		//initialise all dataPoints to cluster with nearest centroid.
 		for(DataPoint d: dataPoints){
 			attachToNearest(d);
@@ -98,7 +168,7 @@ public class Model {
 		for(DataPoint d: dataPoints){
 			System.out.println("Point " + d.getAbsoluteIndex() + " is in cluster " + d.getClusterIndex());
 		}
-		i = 0;
+		int i = 0;
 		/*for(MacroCluster c : clusters){
 			System.out.println("Values for cluster " + (i++) +  ":" +c.calcEMScore());
 		}*/
@@ -217,8 +287,8 @@ public class Model {
 		}
 		//add to cluster nearest
 		macroClusters.get(smallIndex).attachPoint(d);
-		System.out.println("Attached point " + d.getAbsoluteIndex() + " to cluster " + smallIndex);
-		System.out.println("Distance to cluster: " + minDistance);
+		//System.out.println("Attached point " + d.getAbsoluteIndex() + " to cluster " + smallIndex);
+		//System.out.println("Distance to cluster: " + minDistance);
 		return;
 	}
 	

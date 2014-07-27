@@ -34,4 +34,14 @@ public class DataChunk {
 		return numLabelledPoints;
 	}
 	
+	public int[] getClassCounter(int c){
+		int[] classCounter = new int[c];
+		for(DataPoint d : dataPointArray){
+			if(d.isLabeled()){
+				classCounter[d.getLabel()]++;
+			}
+		}
+		return classCounter;
+	}
+	
 }

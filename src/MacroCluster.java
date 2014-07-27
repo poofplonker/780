@@ -13,6 +13,7 @@ public class MacroCluster extends Cluster{
 	private int[] classCounter;
 	private int[] predictedClassCounter;
 	private int c;
+	private int adc;
 	private double unlabelledDispersion;
 	private double labelledDispersion;
 	private double dispersion;
@@ -32,6 +33,7 @@ public class MacroCluster extends Cluster{
 		labelledDispersion = 0;
 		unlabelledDispersion = 0;
 		dispersion = 0;
+		adc = 0;
 		this.c = c;
 	}
 	public DataPoint getCentroid() {
@@ -59,6 +61,7 @@ public class MacroCluster extends Cluster{
 			labelledPointCount--;
 			classCounter[d.getLabel()]--;
 			labelledDispersion -= centroid.getDistanceValue(d);
+			calcADC();
 		}else{
 			if(!unLabelledPoints.remove(d)){
 				return false;
@@ -71,6 +74,7 @@ public class MacroCluster extends Cluster{
 			return false;
 		}
 		totalPoints--;
+
 		return true;
 	}
 	
@@ -84,11 +88,13 @@ public class MacroCluster extends Cluster{
 			unLabelledPoints.add(d);
 			predictedClassCounter[d.getPredictedLabel()]++;
 			unlabelledDispersion += centroid.getDistanceValue(d);
+			calcADC();
 		}
 		dispersion += centroid.getDistanceValue(d);
 		totalPoints++;
 		d.setClusterIndex(clusterIndex);
 		points.add(d);
+
 		return;
 	}
 	
@@ -105,14 +111,10 @@ public class MacroCluster extends Cluster{
 		//System.out.println("Score for cluster: " + score);
 		return score;
 	}
-	public double calcImpurity(int label){
+	private double calcImpurity(int label){
 		//calculate adc
-		int adc = 0;
 		double entropy = 0;
 		for(int i = 0; i < c; i++){
-			if(i != label){
-				adc += (labelledPointCount - classCounter[i]);
-			}
 			double prior;
 			if(labelledPointCount != 0 && classCounter[i] != 0){
 				prior = ((double)classCounter[i])/labelledPointCount;
@@ -126,6 +128,14 @@ public class MacroCluster extends Cluster{
 		//System.out.println("Entropy: " + entropy);
 		this.impurityScore = entropy;
 		return entropy;
+	}
+	
+	private void calcADC(){
+		int temp = 0;
+		for(int i = 0; i < c; i++){
+			temp += (labelledPointCount - classCounter[i])*classCounter[i];
+		}
+		adc = temp;
 	}
 	
 	public double getImpurity(){
