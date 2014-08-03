@@ -14,8 +14,8 @@ public class Main {
 		MersenneTwister twist = new MersenneTwister(new java.util.Date());
 		int vectorLength = 0;	//length of datavector
 		int chunkSize = 6;	//chunksize
-		int k = 2;	//number of clusters
-		double percentUnlabelled = 0;
+		int k = 3;	//number of clusters
+		double percentUnlabelled = 0.5;
 		try {
 			vectorLength = br.readLine().split(",").length;
 			System.out.println("Length: " + vectorLength);
@@ -32,7 +32,7 @@ public class Main {
 		CategoricalData catData = (CategoricalData)chunk.getDataPointArray().get(0).getClassLabel();
 		System.out.println("Number of classes: " + catData.getNumCategories(vectorLength));
 		Model m = new Model(twist, chunk,k, catData.getNumCategories(vectorLength));
-		
+		LabelPropUnit.propagateLabels(m.getPseudo(), 3, 0.25, catData.getNumCategories(vectorLength));
 	}
 
 }

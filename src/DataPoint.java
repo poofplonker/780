@@ -75,7 +75,7 @@ public class DataPoint {
 		}
 		//System.out.println("Value in getDistanceValue:" + value);
 		//System.out.println("Distance between " + this + " and " +other + " is " + Math.sqrt(value));
-		return Math.sqrt(value);
+		return value;
 	}
 	
 	//returns vector of distances between points in each dimension of two dataPoints.  
@@ -83,7 +83,7 @@ public class DataPoint {
 		double[] distanceVector = new double[this.vectorLength];
 		for(int i = 0; i < this.vectorLength; i++){
 			
-			distanceVector[i] = this.data.get(i).rawDistance(arrayList.get(i));
+			distanceVector[i] = this.data.get(i).normDistance(arrayList.get(i));
 			//System.out.println("Distance in dimension "+ i + ": " + distanceVector[i]);
 		}
 		return distanceVector;

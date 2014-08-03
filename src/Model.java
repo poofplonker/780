@@ -27,6 +27,10 @@ public class Model {
 		createPseudoPoints();
 	}
 	
+	public ArrayList<PseudoPoint> getPseudo(){
+		return pseudoPoints;
+	}
+	
 	private void genMicroClusters() {
 		//count the number of microclusters that will be required
 		int counter = 0;
@@ -36,6 +40,7 @@ public class Model {
 		System.out.println("Counter: " + counter);
 		//for each cluster, examine its points and place in appropriate microcluster.
 		microClusters = new ArrayList<MicroCluster>(counter);
+
 
 		int base = 0;
 		for(MacroCluster m: macroClusters){
@@ -51,22 +56,23 @@ public class Model {
 						microClusters.get(classToClusterLabelled.get(p.getLabel())).attachPoint(p);
 					}else{
 						classToClusterLabelled.put(p.getLabel(), base);
-						base++;
-						microClusters.add(classToClusterLabelled.get(p.getLabel()) ,new MicroCluster(p,true,p.getLabel()));
-						microClusters.get(classToClusterLabelled.get(p.getLabel())).attachPoint(p);
+						microClusters.add(new MicroCluster(p,true,p.getLabel()));
+						microClusters.get(base++).attachPoint(p);
 					}
 				}else{
 					if(classToClusterUnlabelled.containsKey(p.getPredictedLabel())){
-						microClusters.get(classToClusterLabelled.get(p.getPredictedLabel())).attachPoint(p);
+						microClusters.get(classToClusterUnlabelled.get(p.getPredictedLabel())).attachPoint(p);
 					}else{
-						classToClusterLabelled.put(p.getPredictedLabel(), base);
-						base++;
+						classToClusterUnlabelled.put(p.getPredictedLabel(), base);
+						microClusters.add(new MicroCluster(p,false,p.getPredictedLabel()));
+						microClusters.get(base++).attachPoint(p);
 					}
 				}
 			}
 		}
 		for(MicroCluster m: microClusters){
 			m.recalculateCentroid();
+			System.out.println(m);
 		}
 	}
 	
@@ -78,7 +84,7 @@ public class Model {
 		ArrayList<DataPoint> dataPoints = dataChunk.getDataPointArray();
 		int[] classCounter = dataChunk.getClassCounter(c);
 		int totalAssigned = 0;
-		for(int j = 0; j < c; j++){
+		for(int j = 0; j < c && dataChunk.getNumLabelledPoints() != 0; j++){
 			centroidCounter[j] = (int)(k*classCounter[j])/dataChunk.getNumLabelledPoints();
 			totalAssigned += centroidCounter[j];
 		}

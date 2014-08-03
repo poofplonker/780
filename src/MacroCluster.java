@@ -86,7 +86,10 @@ public class MacroCluster extends Cluster{
 			labelledDispersion += centroid.getDistanceValue(d);
 		}else{
 			unLabelledPoints.add(d);
-			predictedClassCounter[d.getPredictedLabel()]++;
+			if(d.getPredictedLabel() != -1){
+				predictedClassCounter[d.getPredictedLabel()]++;
+			}
+			
 			unlabelledDispersion += centroid.getDistanceValue(d);
 			//calcADC();
 		}

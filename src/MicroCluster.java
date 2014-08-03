@@ -23,6 +23,14 @@ public class MicroCluster extends Cluster{
 		points.add(d);
 		return;
 	}
+	
+	public String toString(){
+		String thing = "";
+		thing += " Label: " + microClusterLabel;
+		thing += " Labelled: " + labelled;
+		thing += " Number of points: " + totalPoints;
+		return thing;
+	}
 
 	
 	
