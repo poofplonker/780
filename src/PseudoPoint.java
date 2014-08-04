@@ -1,3 +1,5 @@
+import java.util.ArrayList;
+
 
 public class PseudoPoint implements Comparable{
 	private DataPoint centroid;
@@ -43,6 +45,29 @@ public class PseudoPoint implements Comparable{
 
 	public void setClass(int i) {
 		this.label = i;
+		
+	}
+
+	public void merge(PseudoPoint two) {
+		ArrayList<DataType> thisValues = centroid.getData();
+		ArrayList<DataType> otherValues = centroid.getData();
+		int length = centroid.getData().size();
+		ArrayList<DataType> finalValues = new ArrayList<DataType>(length);
+		for(int i = 0; i < length; i++){
+			if(thisValues.get(i) instanceof IntegerData){
+				int thisVal = ((IntegerData) thisValues.get(i)).getRaw();
+				int thatVal = ((IntegerData) otherValues.get(i)).getRaw();
+				finalValues.add(new IntegerData(((thisVal + thatVal)/2),i,length));
+			}else if(thisValues.get(i) instanceof DoubleData){
+				double thisVal = ((DoubleData) thisValues.get(i)).getRaw();
+				double thatVal = ((DoubleData) otherValues.get(i)).getRaw();
+				finalValues.add(new DoubleData(((thisVal + thatVal)/2),i,length));
+			}else{
+				finalValues.add(thisValues.get(i));
+			}
+		}
+		DataPoint updated = new DataPoint(finalValues, null, label, false);
+		this.centroid = updated;
 		
 	}
 	

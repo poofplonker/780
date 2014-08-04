@@ -9,9 +9,10 @@ import cern.jet.random.engine.MersenneTwister;
 
 public class Model {
 	private int chunkSize;
-	private ArrayList<Integer> numClasses;
+	private int numClasses;
 	private ArrayList<MacroCluster> macroClusters;
 	private ArrayList<MicroCluster> microClusters;
+	private ArrayList<Boolean> seenClass;
 	private ArrayList<PseudoPoint> pseudoPoints;
 	private ArrayList<DataPoint> trainingData;
 	private DataChunk dataChunk;
@@ -22,13 +23,17 @@ public class Model {
 	public Model(MersenneTwister twister, DataChunk chunk, int k, int c){
 		this.dataChunk = chunk;
 		this.chunkSize = chunk.getChunkSize();
-		this.numClasses = new ArrayList<Integer>();
+		this.seenClass = chunk.seenClass();
 		this.trainingData = chunk.getTrainingData();
 		this.k = k;
 		this.c = c;
 		clusterData(twister);
 		genMicroClusters();
 		createPseudoPoints();
+	}
+	
+	public void incrementClass(){
+		c++;
 	}
 	
 	public ArrayList<DataPoint> getTrainingData(){
@@ -208,6 +213,9 @@ public class Model {
 		int pointsChanged = 1;
 		int iterations = 0;
 		while(pointsChanged > 0){
+			if(iterations > 5000){
+				break;
+			}
 			pointsChanged = 0;
 			int changedByRecalcCent = 0;
 			//recalculate the cluster centroids based on the datapoints in the clusters
@@ -324,17 +332,17 @@ public class Model {
 				//System.out.println("Distance for  " + i + " "+ j + ": "+ distance );
 				weights[i][j] = Math.exp(-1*(distance/(2*stddev*stddev)))*jth.getWeight();
 				counter += weights[i][j];
-				System.out.print(weights[i][j] + " ");
+				//System.out.print(weights[i][j] + " ");
 
 			}
 			diag[i][i] = counter;
-			System.out.println();
+			//System.out.println();
 		}
-		System.out.println("Diagonal:");
+		//System.out.println("Diagonal:");
 		for(int i = 0; i < vectorLength; i++){
-			System.out.println("Diag new: " + diag[i][i]);
+			//System.out.println("Diag new: " + diag[i][i]);
 			diag[i][i] = ((double)1)/Math.sqrt(diag[i][i]);
-			System.out.println("Diag after: " + diag[i][i]);
+			//System.out.println("Diag after: " + diag[i][i]);
 		}
 		System.out.println();
 		Matrix d = new Matrix(diag);
@@ -346,11 +354,11 @@ public class Model {
 		for(int i = 0; i < vectorLength; i++){
 			double counter = 0;
 			for(int j = 0; j < vectorLength; j++){
-				System.out.print(normLaplace[i][j] + " ");
+				//System.out.print(normLaplace[i][j] + " ");
 				counter += normLaplace[i][j];
 			}
-			System.out.println();
-			System.out.println("For row " + i + " the sum is:" + counter );
+			//System.out.println();
+			//System.out.println("For row " + i + " the sum is:" + counter );
 		}
 
 		double[][] tZero = new double[vectorLength][c+1];
@@ -414,7 +422,7 @@ public class Model {
 	
 	public Matrix predictLabel(DataPoint d, double stddev){
 		double epsilon = 0.001;
-		Matrix predictMatrix = new Matrix(1, pseudoPoints.size());
+		Matrix predictMatrix = new Matrix(1, c+1);
 		double normalisation = epsilon;
 		for(PseudoPoint p: pseudoPoints){
 			Matrix pointMatrix = new Matrix(1,c+1);
@@ -445,6 +453,12 @@ public class Model {
 		}
 		return predictedClass;
 	}
+
+	public ArrayList<Boolean> getSeenClass() {
+		// TODO Auto-generated method stub
+		return seenClass;
+	}
+
 	
 	
 }
