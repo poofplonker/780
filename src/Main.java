@@ -10,11 +10,11 @@ import cern.jet.random.engine.MersenneTwister;
 public class Main {
 
 	public static void main(String[] args) throws FileNotFoundException {
-		BufferedReader br = new BufferedReader(new FileReader("input/EMtest1.txt"));
+		BufferedReader br = new BufferedReader(new FileReader("input/kdduniq.data"));
 		MersenneTwister twist = new MersenneTwister(new java.util.Date());
 		int vectorLength = 0;	//length of datavector
-		int chunkSize = 6;	//chunksize
-		int k = 3;	//number of clusters
+		int chunkSize = 1600;	//chunksize
+		int k = 50;	//number of clusters
 		double percentUnlabelled = 0.5;
 		try {
 			vectorLength = br.readLine().split(",").length;
@@ -32,7 +32,7 @@ public class Main {
 		CategoricalData catData = (CategoricalData)chunk.getDataPointArray().get(0).getClassLabel();
 		System.out.println("Number of classes: " + catData.getNumCategories(vectorLength));
 		Model m = new Model(twist, chunk,k, catData.getNumCategories(vectorLength));
-		LabelPropUnit.propagateLabels(m.getPseudo(), 3, 0.25, catData.getNumCategories(vectorLength));
+		m.propagateLabels(3, 0.25, catData.getNumCategories(vectorLength));
 	}
 
 }

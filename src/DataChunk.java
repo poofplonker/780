@@ -8,17 +8,20 @@ public class DataChunk {
 	
 	private final int chunkSize;
 	private ArrayList<DataPoint> dataPointArray;
+	private ArrayList<DataPoint> trainingData;
 	private int numLabelledPoints;
 	
 	public DataChunk(int chunkSize, DataProcessor d, MersenneTwister twister){
 		this.chunkSize = chunkSize;
 		this.numLabelledPoints = 0;
 		this.dataPointArray = new ArrayList<DataPoint>(chunkSize);
+		this.trainingData = new ArrayList<DataPoint>();
 		DataPoint t;
 		for(int i = 0; i < chunkSize; i++){
 			t = d.processPoint(twister);
 			if(t.isLabeled()){
 				numLabelledPoints++;
+				this.trainingData.add(t);
 			}
 			this.dataPointArray.add(t);	
 		}
@@ -29,6 +32,10 @@ public class DataChunk {
 	}
 	public int getChunkSize(){
 		return this.chunkSize;
+	}
+	
+	public ArrayList<DataPoint> getTrainingData(){
+		return this.trainingData;
 	}
 	public int getNumLabelledPoints(){
 		return numLabelledPoints;
