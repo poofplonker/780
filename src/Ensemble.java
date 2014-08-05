@@ -8,14 +8,24 @@ public class Ensemble {
 	private int numModels;
 	private int maxModels;
 	private int k; 
+	private int success;
+	private int classifications;
 	
 	public Ensemble(int l, int k){
 		maxModels = l;
 		numModels = 0;
 		this.k = k;
 		ensemble = new ArrayList<Model>();
+		success = 0;
+		classifications = 0;
 	}
 	
+	public double getAccuracy(){
+		if(classifications == 0){
+			return 0;
+		}
+		return (double)success / classifications;
+	}
 	public void addModel(Model m){
 		refineEnsemble(m);
 		if(numModels < maxModels){
@@ -25,18 +35,26 @@ public class Ensemble {
 			updateEnsemble(m);
 		}
 	}
+	public void expandClasses(int c){
+		for(Model m : ensemble){
+			while(m.getSeenClass().size() < c){
+				m.getSeenClass().add(false);
+				m.incrementClass();
+			}
+		}
+	}
 	
 	private void refineEnsemble(Model m) {
 		ArrayList<Integer> unseenClasses = new ArrayList<Integer>();
 		ArrayList<Boolean> mseen = m.getSeenClass();
-		int numClasses = mseen.size();
-		for(int i = 0; i < numClasses; i++){
+		System.out.println("In refine ensemble the num of classes is " + m.getNumClass() + " and the length of the seen vector is " + mseen.size() );
+		for(int i = 0; i < m.getNumClass(); i++){
 			if(!mseen.get(i)){
 				continue;
 			}
 			boolean evolved = true; 
 			for(Model x : ensemble){
-				while(x.getSeenClass().size() <= i){
+				while(x.getSeenClass().size() < i){
 					x.getSeenClass().add(false);
 					x.incrementClass();
 				}
@@ -118,18 +136,24 @@ public class Ensemble {
 				minAccuracy = rating;
 				worstEnsemble = i;
 			}
-			System.out.println("Model " + i + "  has an accuracy of " + rating);
+			//System.out.println("Model " + i + "  has an accuracy of " + rating);
 		}
-		System.out.println("Model " + worstEnsemble + " sucks hard");
+		System.out.println("Model " + worstEnsemble + " sucks hard with accuracy " + minAccuracy);
 		ensemble.remove(worstEnsemble);
 	}
 
 	public int predictPoint(DataPoint d, int numClasses){
 		int predictedClass = -1;
 		Matrix classVector = new Matrix(1,numClasses+1);
+		Matrix predictor  = null;
 		for(Model m: ensemble){
-			classVector.plusEquals(m.predictLabel(d, 0.25));
+			predictor = m.predictLabel(d, 0.25);
+			
+			classVector.plusEquals(predictor);
+			
 		}
+		//System.out.println("Dimensions of predictor: " + predictor.getRowDimension() + " " +predictor.getColumnDimension());
+		//System.out.println("Dimensions of class vector: " + classVector.getRowDimension() + " " + classVector.getColumnDimension());
 		double maxValue = 0;
 		for(int i = 0; i < numClasses+1; i++){
 			if(maxValue < classVector.get(0, i)){
@@ -137,8 +161,21 @@ public class Ensemble {
 				predictedClass = i-1;
 			}
 		}
-		System.out.println("Predicted class for " + d + " is" + predictedClass);
+		//System.out.println("Predicted class for " + d + " is" + predictedClass);
+		if(predictedClass == d.getActualLabel()){
+			success++;
+		}
+		classifications++;
 		return predictedClass;
+		
+	}
+	
+	public void predictChunk(DataChunk d){
+		for(DataPoint x: d.getDataPointArray()){
+			if(!x.isLabeled()){
+				x.setPredictedLabel(predictPoint(x,ensemble.get(0).getNumClass()));
+			}
+		}
 		
 	}
 }

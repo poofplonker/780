@@ -13,6 +13,7 @@ public class Main {
 		BufferedReader br = new BufferedReader(new FileReader("input/kddcup.data_10_percent_corrected"));
 		MersenneTwister twist = new MersenneTwister(new java.util.Date());
 		int l = 6;
+		int c = 0;
 		int k = 50;
 		Ensemble ens = new Ensemble(l,k);
 		int vectorLength = 0;	//length of datavector
@@ -29,15 +30,24 @@ public class Main {
 			e.printStackTrace();
 		}
 		DataProcessor d = new DataProcessor(vectorLength, percentUnlabelled,br);
+		int iterations = 0;
 		while(br.ready()){
 			DataChunk chunk = new DataChunk(chunkSize, d,twist);
 			vectorLength = chunk.getDataPointArray().get(0).getData().size();
-			System.out.println("Length now: " + vectorLength);
-			CategoricalData catData = (CategoricalData)chunk.getDataPointArray().get(0).getClassLabel();
-			System.out.println("Number of classes: " + catData.getNumCategories(vectorLength));
-			Model m = new Model(twist, chunk,k, catData.getNumCategories(vectorLength));
-			m.propagateLabels(3, 0.25, catData.getNumCategories(vectorLength));
+			c = d.getSeenClasses();
+			
+			if(iterations > 0){
+				ens.expandClasses(c);
+				ens.predictChunk(chunk);
+			}
+			//System.out.println("Length now: " + vectorLength);
+
+			System.out.println("Number of classes: " + c);
+			Model m = new Model(twist, chunk,k, c);
+			m.propagateLabels(3, 0.25);
 			ens.addModel(m);
+			iterations++;
+			System.out.println("After " + iterations +" iterations, the accuracy is:" + ens.getAccuracy());
 		}
 	}
 

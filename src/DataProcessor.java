@@ -13,6 +13,8 @@ public class DataProcessor {
 	private int vectorLength;
 	private BufferedReader br;
 	private int recordsProcessed = 0;
+	private int seenClasses = 0;
+	private HashMap<String, Integer> classMap;
 	private double percentUnlabelled;
 	
 	
@@ -20,6 +22,12 @@ public class DataProcessor {
 		this.vectorLength = vectorLength;
 		this.percentUnlabelled = percentUnlabelled;
 		this.br = br;
+		this.classMap = new HashMap<String,Integer>();
+		
+	}
+	
+	public int getSeenClasses(){
+		return seenClasses;
 	}
 	
 	public DataPoint processPoint(MersenneTwister twister){
@@ -40,37 +48,23 @@ public class DataProcessor {
 		for (int i = 0; i < values.length; i++){
 			
 			//value is an integer
-			
+			dataValues.add(i,processField(values[i],i));
 			/*Both all Integers share min and max: Fix */
-			if (values[i].matches("-?\\d+")){
-				int result = Integer.parseInt(values[i]);
-				DoubleData data =  new DoubleData(result,i,vectorLength);
-				dataValues.add(i,data);
-				if(result > data.getMax()){
-					data.setMax(result);
-				}
-			
-			//values is a float
-			}else if (values[i].matches("([0-9]*)\\.([0-9]*)")){
-				double result = Double.parseDouble(values[i]);
-				DoubleData data = new DoubleData(result,i,vectorLength);
-				dataValues.add(i, data);
-				if(result > data.getMax()){
-					data.setMax(result);
-				}
-			}else{
-				dataValues.add(i, new CategoricalData(values[i],i,vectorLength));
-			}
+
 		}
 		DataPoint d;
 		//remove class label
 		DataType classLabel = dataValues.remove(vectorLength-1);
-		
+		if(!classMap.containsKey(((CategoricalData) classLabel).getRaw())){
+			classMap.put(((CategoricalData) classLabel).getRaw(),1);
+			seenClasses++;
+		}
 		//simulation of unlabelled data
 		if(twister.nextDouble() < percentUnlabelled){
 			d = new DataPoint(dataValues, classLabel, ((CategoricalData)classLabel).numerValue(), false);
 		}else{
 			d = new DataPoint(dataValues, classLabel,((CategoricalData)classLabel).numerValue(),true);
+			
 		}
 		recordsProcessed++;
 		return d;
@@ -84,4 +78,26 @@ public class DataProcessor {
 		this.percentUnlabelled = percentUnlabelled;
 	}
 	
+	public DataType processField(String value, int i){
+		if (value.matches("-?\\d+")){
+			int result = Integer.parseInt(value);
+			DoubleData data =  new DoubleData(result,i,vectorLength);
+			
+			if(result > data.getMax()){
+				data.setMax(result);
+			}
+			return data;
+		
+		//values is a float
+		}else if (value.matches("([0-9]*)\\.([0-9]*)")){
+			double result = Double.parseDouble(value);
+			DoubleData data = new DoubleData(result,i,vectorLength);
+			if(result > data.getMax()){
+				data.setMax(result);
+			}
+			return data;
+		}else{
+			return new CategoricalData(value,i,vectorLength);
+		}
+	}
 }

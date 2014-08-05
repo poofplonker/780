@@ -60,9 +60,9 @@ public class DataChunk {
 		return classCounter;
 	}
 
-	public ArrayList<Boolean> seenClass() {
-		ArrayList<Boolean> seen = new ArrayList<Boolean>(maxLabel);
-		for(int i = 0; i < maxLabel; i++){
+	public ArrayList<Boolean> seenClass(int c) {
+		ArrayList<Boolean> seen = new ArrayList<Boolean>(c);
+		for(int i = 0; i < c; i++){
 			if(seenClass.containsKey(i)){
 				seen.add(true);
 			}else{

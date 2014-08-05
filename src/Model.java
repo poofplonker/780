@@ -23,7 +23,7 @@ public class Model {
 	public Model(MersenneTwister twister, DataChunk chunk, int k, int c){
 		this.dataChunk = chunk;
 		this.chunkSize = chunk.getChunkSize();
-		this.seenClass = chunk.seenClass();
+		this.seenClass = chunk.seenClass(c);
 		this.trainingData = chunk.getTrainingData();
 		this.k = k;
 		this.c = c;
@@ -51,7 +51,7 @@ public class Model {
 		}
 		System.out.println("Counter: " + counter);
 		//for each cluster, examine its points and place in appropriate microcluster.
-		microClusters = new ArrayList<MicroCluster>(counter);
+		microClusters = new ArrayList<MicroCluster>();
 
 
 		int base = 0;
@@ -137,7 +137,7 @@ public class Model {
 				i++;
 				//System.out.println("After 1 addition, size of visitedSet " + visitedSet.size() + " and size of classPoints: " + thisClassPoints.size());
 				while(i < representation){
-					double maxDistance = 0;
+					double maxDistance = -1;
 					int maxIndex = -1;
 					for(int d = 0; d < thisClassPoints.size(); d++){
 						if(contained[d] == true){
@@ -180,6 +180,7 @@ public class Model {
 			}
 			base += representation;
 		}
+		System.out.println("NUmber of generated macro-clusters: " + base);
 	}
 
 	public ArrayList<MacroCluster> clusterData(MersenneTwister twister){
@@ -202,7 +203,7 @@ public class Model {
 		}*/
 		
 
-		System.out.println("Total Value for EM: " + totalValue);
+		//System.out.println("Total Value for EM: " + totalValue);
 		expectationMinimisation(clusters,dataPoints);
 		return clusters;
 		
@@ -241,13 +242,13 @@ public class Model {
 			iterations++;
 			//Total value calculated to ensure that expectation minimisation is in fact converging.
 			
-			System.out.println("Total Value for EM: " + totalValue);
-			System.out.println("Points changed: " + pointsChanged);
+			//System.out.println("Total Value for EM: " + totalValue);
+			//System.out.println("Points changed: " + pointsChanged);
 			//System.out.println("Points changed by the change in centroids: " + changedByRecalcCent);
 			/*for(DataPoint d: dataPoints){
 				System.out.println("Point " + d.getAbsoluteIndex() + " is in cluster " + d.getClusterIndex());
 			}*/
-			System.out.println("PrevEm: " + prevEm+", diff:" + (totalValue-prevEm));
+			//System.out.println("PrevEm: " + prevEm+", diff:" + (totalValue-prevEm));
 			prevEm = totalValue;
 			//System.out.println("Iterations: " + iterations);
 		}
@@ -303,13 +304,13 @@ public class Model {
 		}
 	}
 	
-	public void propagateLabels(double r, double stddev,int c){
+	public void propagateLabels(double r, double stddev){
 		int vectorLength = pseudoPoints.size();
 		Collections.sort(pseudoPoints);
-		for(int i = 0; i < vectorLength; i++){
-			System.out.println(pseudoPoints.get(i).toString());
-		}
-		System.out.println();
+//		for(int i = 0; i < vectorLength; i++){
+//			System.out.println(pseudoPoints.get(i).toString());
+//		}
+		//System.out.println();
 		double alpha = 0.99;
 		double[][] weights = new double[vectorLength][vectorLength];
 		double[][] diag = new double[vectorLength][vectorLength];
@@ -319,7 +320,7 @@ public class Model {
 			for(int j = 0; j < vectorLength; j++){
 				if(i ==j){	
 					weights[i][j] =0;
-					System.out.print(weights[i][j] + " ");
+					//System.out.print(weights[i][j] + " ");
 					continue;
 				}
 				PseudoPoint ith = pseudoPoints.get(i);
@@ -344,22 +345,20 @@ public class Model {
 			diag[i][i] = ((double)1)/Math.sqrt(diag[i][i]);
 			//System.out.println("Diag after: " + diag[i][i]);
 		}
-		System.out.println();
+		//System.out.println();
 		Matrix d = new Matrix(diag);
 		Matrix w = new Matrix(weights);
-		System.out.println("Laplacian normalised:");
+		//System.out.println("Laplacian normalised:");
 		//laplacian normalisation
 		Matrix p = d.times(w).times(d);
 		double[][] normLaplace = p.getArray();
-		for(int i = 0; i < vectorLength; i++){
-			double counter = 0;
-			for(int j = 0; j < vectorLength; j++){
-				//System.out.print(normLaplace[i][j] + " ");
-				counter += normLaplace[i][j];
-			}
-			//System.out.println();
-			//System.out.println("For row " + i + " the sum is:" + counter );
-		}
+//		for(int i = 0; i < vectorLength; i++){
+//			for(int j = 0; j < vectorLength; j++){
+//				//System.out.print(normLaplace[i][j] + " ");
+//			}
+//			//System.out.println();
+//			//System.out.println("For row " + i + " the sum is:" + counter );
+//		}
 
 		double[][] tZero = new double[vectorLength][c+1];
 		for(int i = 0; i < vectorLength; i++){
@@ -370,9 +369,9 @@ public class Model {
 				}else{
 					tZero[i][j] = 0;
 				}
-				System.out.print( tZero[i][j]+" ");
+				//System.out.print( tZero[i][j]+" ");
 			}
-			System.out.println();
+			//System.out.println();
 		}
 		Matrix tZeroMat = new Matrix(tZero);
 		Matrix currentT = tZeroMat;
@@ -394,13 +393,13 @@ public class Model {
 			}
 			iterations++;
 		}
-		for(int i = 0; i < vectorLength; i++){
-			for(int j = 0; j < c+1; j++){
-				System.out.print( tZero[i][j]+" ");
-			}
-			System.out.println();
-		}
-		System.out.println("Iterations: " + iterations);
+//		for(int i = 0; i < vectorLength; i++){
+//			for(int j = 0; j < c+1; j++){
+//				System.out.print( tZero[i][j]+" ");
+//			}
+//			System.out.println();
+//		}
+		//System.out.println("Iterations: " + iterations);
 		for(int i = 0; i < vectorLength; i++){
 			if(pseudoPoints.get(i).getLabel() != -1){
 				continue;
@@ -415,9 +414,10 @@ public class Model {
 			}
 			pseudoPoints.get(i).setClass(index-1);
 		}
-		for(int i = 0; i < vectorLength; i++){
-			System.out.println("Point "+ i + ": " + pseudoPoints.get(i).getLabel());
-		}
+//		for(int i = 0; i < vectorLength; i++){
+//			System.out.println("Point "+ i + ": " + pseudoPoints.get(i).getLabel());
+//		}
+		System.out.println("Number of pseudoPoints generated:" + vectorLength);
 	}
 	
 	public Matrix predictLabel(DataPoint d, double stddev){
@@ -457,6 +457,10 @@ public class Model {
 	public ArrayList<Boolean> getSeenClass() {
 		// TODO Auto-generated method stub
 		return seenClass;
+	}
+
+	public int getNumClass() {
+		return c;
 	}
 
 	
