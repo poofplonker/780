@@ -393,12 +393,13 @@ public class Model {
 			}
 			iterations++;
 		}
-//		for(int i = 0; i < vectorLength; i++){
-//			for(int j = 0; j < c+1; j++){
-//				System.out.print( tZero[i][j]+" ");
-//			}
-//			System.out.println();
-//		}
+		/*for(int i = 0; i < vectorLength; i++){
+			System.out.print("microCluster " + i +": ");
+			for(int j = 0; j < c+1; j++){
+				System.out.print( tZero[i][j]+" ");
+			}
+			System.out.println();
+		}*/
 		//System.out.println("Iterations: " + iterations);
 		for(int i = 0; i < vectorLength; i++){
 			if(pseudoPoints.get(i).getLabel() != -1){
@@ -461,6 +462,47 @@ public class Model {
 
 	public int getNumClass() {
 		return c;
+	}
+
+	public void accuracyCheck(ArrayList<DataPoint> trainingData2) {
+		ArrayList<LinkedList<DataPoint>> neighbours = new ArrayList<LinkedList<DataPoint>>(pseudoPoints.size());
+		for(int i = 0; i < pseudoPoints.size(); i++){
+			neighbours.add(new LinkedList<DataPoint>());
+		}
+		for(int i = 0; i < trainingData2.size(); i++){
+			DataPoint currentPoint = trainingData2.get(i);
+			double minDistance = Double.MAX_VALUE;
+			int minIndex = -1;
+			for(int j  = 0; j < pseudoPoints.size(); j++){
+				if(currentPoint.getDistanceValue(pseudoPoints.get(j).getCentroid()) < minDistance){
+					minDistance = currentPoint.getDistanceValue(pseudoPoints.get(j).getCentroid());
+					minIndex = j;
+				}
+			}
+			if(minIndex != -1){
+				neighbours.get(minIndex).add(currentPoint);
+			}else{
+				//because no minimal distance was chosen, there are no pseudopoints in the model, and it will classify
+				// with 0 accuracy
+				return;
+			}
+		}
+		double boundary = 0.7;
+		for(int i = 0; i < neighbours.size(); i++){
+			double correctCounter = 0;
+			for(int j = 0; j < neighbours.get(i).size(); j++){
+				if(neighbours.get(i).get(j).getLabel() == pseudoPoints.get(i).getLabel()){
+					correctCounter++;
+				}
+			}
+			if(correctCounter/neighbours.get(i).size() < boundary){
+				pseudoPoints.remove(i);
+				neighbours.remove(i);
+				i--;
+				System.out.println("Point Removed on accuracy check");
+			}
+		}
+		
 	}
 
 	

@@ -22,12 +22,14 @@ public class Ensemble {
 	
 	public double getAccuracy(){
 		if(classifications == 0){
-			return 0;
+			return 1;
 		}
 		return (double)success / classifications;
 	}
+	
 	public void addModel(Model m){
 		refineEnsemble(m);
+		accuracyCheck(m);
 		if(numModels < maxModels){
 			ensemble.add(numModels++,m);
 		}
@@ -80,6 +82,14 @@ public class Ensemble {
 					}
 				}
 			}
+		}
+		
+	}
+	
+	private void accuracyCheck(Model m){
+		ArrayList<DataPoint> trainingData = m.getTrainingData();
+		for(Model x: ensemble){
+			x.accuracyCheck(trainingData);
 		}
 		
 	}

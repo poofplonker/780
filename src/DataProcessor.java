@@ -45,16 +45,18 @@ public class DataProcessor {
 		
 		ArrayList<DataType> dataValues = new ArrayList<DataType>(vectorLength);
 		//assumes that no data values are missing - potentially dodgy
+		int valueCounter = 0;
 		for (int i = 0; i < values.length; i++){
-			
+			if(values[i].matches("-?\\d+") || values[i].matches("([0-9]*)\\.([0-9]*)") || i == (values.length -1)){
 			//value is an integer
-			dataValues.add(i,processField(values[i],i));
+				dataValues.add(processField(values[i],valueCounter++));
 			/*Both all Integers share min and max: Fix */
+			}
 
 		}
 		DataPoint d;
 		//remove class label
-		DataType classLabel = dataValues.remove(vectorLength-1);
+		DataType classLabel = dataValues.remove(dataValues.size()-1);
 		if(!classMap.containsKey(((CategoricalData) classLabel).getRaw())){
 			classMap.put(((CategoricalData) classLabel).getRaw(),1);
 			seenClasses++;

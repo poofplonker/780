@@ -1,13 +1,5 @@
 Problems with the LabelStream algorithm:
 
-1) The integerData type and Double Data types share min and max values amongst the types:
-- there should be a way to have min and max for each attribute.
-
-2) When recalculating the centroid, determining which string value should be the average
-for those points is probably broken. 
-
-3) Need to ensure the expectation maximisation being currently used is correct and 
-does indeed converge. 
-
-4) Is the method for expectation maximisation with the checking and swapping of labelled 
-points too slow?
+1) Need to fix problem where there are duplicate points in the datachunk and there are duplicate centroids leading
+to empty centroids
+2) Implement pseudopoint deletion for inaccurate pseudopoints. 
