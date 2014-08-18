@@ -393,13 +393,13 @@ public class Model {
 			}
 			iterations++;
 		}
-		/*for(int i = 0; i < vectorLength; i++){
+		for(int i = 0; i < vectorLength; i++){
 			System.out.print("microCluster " + i +": ");
 			for(int j = 0; j < c+1; j++){
 				System.out.print( tZero[i][j]+" ");
 			}
 			System.out.println();
-		}*/
+		}
 		//System.out.println("Iterations: " + iterations);
 		for(int i = 0; i < vectorLength; i++){
 			if(pseudoPoints.get(i).getLabel() != -1){
@@ -499,10 +499,22 @@ public class Model {
 				pseudoPoints.remove(i);
 				neighbours.remove(i);
 				i--;
-				System.out.println("Point Removed on accuracy check");
+				System.out.println("Point Removed on accuracy check in " + this);
 			}
 		}
 		
+	}
+	
+	public double classificationScore(ArrayList<DataPoint> data){
+		int misClassify = 0;
+		for(DataPoint d: trainingData){
+			if(d.getLabel() != predictLabelValue(d, 0.25)){
+				//System.out.println("Predicted label: " + currentMod.predictLabelValue(d, 0.25) + " and the actual label is " + d.getLabel());
+				misClassify++;
+			}
+		}
+		double rating = 1-(double)misClassify/data.size();
+		return rating;
 	}
 
 	

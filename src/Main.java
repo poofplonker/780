@@ -73,10 +73,9 @@ public class Main {
 			DataChunk chunk = new DataChunk(chunkSize, d,twist);
 			vectorLength = chunk.getDataPointArray().get(0).getData().size();
 			c = d.getSeenClasses();
-			
 			if(iterations > 0){
 				ens.expandClasses(c);
-				ens.predictChunk(chunk);
+				ens.predictChunkForClustering(chunk);
 			}
 			//System.out.println("Length now: " + vectorLength);
 
@@ -85,6 +84,7 @@ public class Main {
 			m.propagateLabels(3, 0.25);
 			ens.addModel(m);
 			iterations++;
+			ens.predictChunk(chunk);
 			System.out.println("After " + iterations +" iterations, the accuracy is:" + ens.getAccuracy());
 			percentArray.add(ens.getAccuracy());
 			

@@ -68,6 +68,7 @@ public class DataProcessor {
 			d = new DataPoint(dataValues, classLabel,((CategoricalData)classLabel).numerValue(),true);
 			
 		}
+		//System.out.println(d +" " +  (((CategoricalData) d.getClassLabel()).getRaw()));
 		recordsProcessed++;
 		return d;
 	}

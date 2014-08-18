@@ -28,15 +28,21 @@ public class Ensemble {
 	}
 	
 	public void addModel(Model m){
-		refineEnsemble(m);
 		accuracyCheck(m);
+		refineEnsemble(m);
+		
 		if(numModels < maxModels){
 			ensemble.add(numModels++,m);
+			for(Model x: ensemble){
+				double rating = x.classificationScore(m.getTrainingData());
+				System.out.println("Model " + x + "  has an accuracy of " + rating + " and size of " + x.getPseudo().size());
+			}
 		}
 		else{
 			updateEnsemble(m);
 		}
 	}
+	
 	public void expandClasses(int c){
 		for(Model m : ensemble){
 			while(m.getSeenClass().size() < c){
@@ -73,12 +79,15 @@ public class Ensemble {
 			for(PseudoPoint p : m.getPseudo()){
 				if(p.getLabel() == unseen){
 					for(Model x : ensemble){
+						int record = x.getPseudo().size();
 						if(x.getPseudo().size() > k){
-							int record = x.getPseudo().size();
+							
 							mergePoints(x);
-							x.getPseudo().add(p);
-							//System.out.println("After merge and insert size has gone from "+ record +" to " + x.getPseudo().size());
+							
+
 						}
+						x.getPseudo().add(p);
+						System.out.println("After merge and insert size has gone from "+ record +" to " + x.getPseudo().size());
 					}
 				}
 			}
@@ -133,26 +142,20 @@ public class Ensemble {
 		int numTraining = trainingData.size();
 		double minAccuracy = 1.5;
 		for(int i = 0; i < ensemble.size(); i++){
-			int misClassify = 0;
 			Model currentMod = ensemble.get(i);
-			for(DataPoint d: trainingData){
-				if(d.getLabel() != currentMod.predictLabelValue(d, 0.25)){
-					//System.out.println("Predicted label: " + currentMod.predictLabelValue(d, 0.25) + " and the actual label is " + d.getLabel());
-					misClassify++;
-				}
-			}
-			double rating = 1-(double)misClassify/numTraining;
+			double rating = currentMod.classificationScore(trainingData);
 			if(rating < minAccuracy){
 				minAccuracy = rating;
 				worstEnsemble = i;
 			}
-			//System.out.println("Model " + i + "  has an accuracy of " + rating);
+			System.out.println("Model " + i + "  has an accuracy of " + rating);
 		}
 		System.out.println("Model " + worstEnsemble + " sucks hard with accuracy " + minAccuracy);
 		ensemble.remove(worstEnsemble);
 	}
 
-	public int predictPoint(DataPoint d, int numClasses){
+	
+	public int predictPoint(DataPoint d, int numClasses,boolean accuracy){
 		int predictedClass = -1;
 		Matrix classVector = new Matrix(1,numClasses+1);
 		Matrix predictor  = null;
@@ -172,18 +175,29 @@ public class Ensemble {
 			}
 		}
 		//System.out.println("Predicted class for " + d + " is" + predictedClass);
-		if(predictedClass == d.getActualLabel()){
-			success++;
+		if(accuracy){
+			if(predictedClass == d.getActualLabel()){
+				success++;
+			}
+			classifications++;
 		}
-		classifications++;
 		return predictedClass;
+		
+	}
+	
+	public void predictChunkForClustering(DataChunk d){
+		for(DataPoint x: d.getDataPointArray()){
+			if(!x.isLabeled()){
+				x.setPredictedLabel(predictPoint(x,ensemble.get(0).getNumClass(),false));
+			}
+		}
 		
 	}
 	
 	public void predictChunk(DataChunk d){
 		for(DataPoint x: d.getDataPointArray()){
 			if(!x.isLabeled()){
-				x.setPredictedLabel(predictPoint(x,ensemble.get(0).getNumClass()));
+				predictPoint(x,ensemble.get(0).getNumClass(),true);
 			}
 		}
 		
