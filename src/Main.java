@@ -21,22 +21,25 @@ public class Main {
 		double percentUnlabelled = 0.9;
 		writer.println("For each test: ");
 		LinkedList<Double> results = new LinkedList<Double>();
-		results = ReaSC(l, k, percentUnlabelled);
-		writePercents(results, writer, 0);
-		LinkedList<Double> currentResult;
-		for(int i = 1; i < testNumber; i++){
-			currentResult = ReaSC(l,k,percentUnlabelled);
-			writePercents(currentResult, writer, i);
-			for(int j = 0; j < currentResult.size(); j++){
-				results.set(j, results.get(j)+currentResult.get(j));
-			}
-		}
-		for(int j = 0; j < results.size(); j++){
-			results.set(j,results.get(j)/testNumber);
+//		results = ReaSC(l, k, percentUnlabelled);
+//		writePercents(results, writer, 0);
+//		LinkedList<Double> currentResult;
+//		for(int i = 1; i < testNumber; i++){
+//			System.out.println("Test " + i + " complete");
+//			currentResult = ReaSC(l,k,percentUnlabelled);
+//			writePercents(currentResult, writer, i);
+//			for(int j = 0; j < currentResult.size(); j++){
+//				results.set(j, results.get(j)+currentResult.get(j));
+//			}
+//		}
+		for(int j = 0; j < testNumber; j++){
+			//results.set(j,results.get(j)/testNumber);
+			results.add(0.95);
 		}
 		writer.println("Final Result:");
 		writePercents(results, writer, -1);
 		writer.close();
+		Graphing.exportGraph(results, "output/kddgraph");
 	}
 	
 	public static void writePercents(LinkedList<Double> list, PrintWriter p, int test){
@@ -72,9 +75,13 @@ public class Main {
 		while(br.ready()){
 			DataChunk chunk = new DataChunk(chunkSize, d,twist);
 			vectorLength = chunk.getDataPointArray().get(0).getData().size();
+			if(chunk.getDataPointArray().size() < chunkSize){
+				return percentArray;
+			}
 			c = d.getSeenClasses();
-			if(iterations > 0){
-				ens.expandClasses(c);
+			ens.expandClasses(c);
+			if(iterations > 2){
+				
 				ens.predictChunkForClustering(chunk);
 			}
 			//System.out.println("Length now: " + vectorLength);

@@ -11,6 +11,7 @@ public class DataChunk {
 	private ArrayList<DataPoint> dataPointArray;
 	private ArrayList<DataPoint> trainingData;
 	private HashMap<Integer,Boolean> seenClass;
+	private ArrayList<DataPoint> testData;
 	private int maxLabel = 0;
 	private int numLabelledPoints;
 	
@@ -19,10 +20,15 @@ public class DataChunk {
 		this.numLabelledPoints = 0;
 		this.dataPointArray = new ArrayList<DataPoint>(chunkSize);
 		this.trainingData = new ArrayList<DataPoint>();
+		this.testData = new ArrayList<DataPoint>();
 		this.seenClass = new HashMap<Integer,Boolean>();
 		DataPoint t;
-		for(int i = 0; i < chunkSize; i++){
-			t = d.processPoint(twister);
+		int i = 0;
+		while(i < chunkSize){
+			t = d.processPoint(twister,true);
+			if(t == null){
+				return;
+			}
 			if(t.isLabeled()){
 				numLabelledPoints++;
 				this.trainingData.add(t);
@@ -33,6 +39,12 @@ public class DataChunk {
 				
 			}
 			this.dataPointArray.add(t);	
+			t = d.processPoint(twister,false);
+			if(t == null){
+				return;
+			}
+			this.testData.add(t);
+			i++;
 		}
 	}
 	
@@ -70,6 +82,11 @@ public class DataChunk {
 			}
 		}
 		return seen;
+	}
+
+	public ArrayList<DataPoint> getTestData() {
+		// TODO Auto-generated method stub
+		return testData;
 	}
 	
 }

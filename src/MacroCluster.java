@@ -47,6 +47,7 @@ public class MacroCluster extends Cluster{
 				counter++;
 			}
 		}
+		//System.out.println("Labelled Class Counter: " + counter);
 		return counter;
 	}
 	public void setCentroid(DataPoint centroid) {
@@ -165,10 +166,12 @@ public class MacroCluster extends Cluster{
 				counter++;
 			}
 		}
+		//System.out.println("Unlabelled Class Counter: " + counter);
 		return counter;
 	}
 	
 	public int countMicroClusters(){
+		
 		return countPredictedClasses() + countNumClasses();
 	}
 	

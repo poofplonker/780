@@ -35,7 +35,7 @@ public class Ensemble {
 			ensemble.add(numModels++,m);
 			for(Model x: ensemble){
 				double rating = x.classificationScore(m.getTrainingData());
-				System.out.println("Model " + x + "  has an accuracy of " + rating + " and size of " + x.getPseudo().size());
+				//System.out.println("Model " + x + "  has an accuracy of " + rating + " and size of " + x.getPseudo().size());
 			}
 		}
 		else{
@@ -89,6 +89,7 @@ public class Ensemble {
 						x.getPseudo().add(p);
 						System.out.println("After merge and insert size has gone from "+ record +" to " + x.getPseudo().size());
 					}
+					break;
 				}
 			}
 		}
@@ -148,7 +149,7 @@ public class Ensemble {
 				minAccuracy = rating;
 				worstEnsemble = i;
 			}
-			System.out.println("Model " + i + "  has an accuracy of " + rating);
+			//System.out.println("Model " + i + "  has an accuracy of " + rating);
 		}
 		System.out.println("Model " + worstEnsemble + " sucks hard with accuracy " + minAccuracy);
 		ensemble.remove(worstEnsemble);
@@ -159,9 +160,13 @@ public class Ensemble {
 		int predictedClass = -1;
 		Matrix classVector = new Matrix(1,numClasses+1);
 		Matrix predictor  = null;
+		//System.out.println("Class vector dimensions:"  + 1 + " "+(numClasses+1));
 		for(Model m: ensemble){
+			if(numClasses > m.getNumClass()){
+				m.setNumClass(numClasses);
+			}
 			predictor = m.predictLabel(d, 0.25);
-			
+			//System.out.println("Predictor dimesions: " + predictor.getRowDimension() +  " " + predictor.getColumnDimension());
 			classVector.plusEquals(predictor);
 			
 		}
@@ -178,6 +183,8 @@ public class Ensemble {
 		if(accuracy){
 			if(predictedClass == d.getActualLabel()){
 				success++;
+			}else{
+				System.out.println("Incorrect Point -- Label:" + d.getActualLabel() + " Predicted Label: " + predictedClass + " Listed Label: " + ((CategoricalData)d.getClassLabel()).getRaw());
 			}
 			classifications++;
 		}
@@ -195,10 +202,10 @@ public class Ensemble {
 	}
 	
 	public void predictChunk(DataChunk d){
-		for(DataPoint x: d.getDataPointArray()){
-			if(!x.isLabeled()){
+		for(DataPoint x: d.getTestData()){
+			//if(!x.isLabeled()){
 				predictPoint(x,ensemble.get(0).getNumClass(),true);
-			}
+			//}
 		}
 		
 	}

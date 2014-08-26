@@ -76,7 +76,8 @@ public class Model {
 						microClusters.get(classToClusterUnlabelled.get(p.getPredictedLabel())).attachPoint(p);
 					}else{
 						classToClusterUnlabelled.put(p.getPredictedLabel(), base);
-						microClusters.add(new MicroCluster(p,false,p.getPredictedLabel()));
+						microClusters.add(new MicroCluster(p,false,-1));
+						//System.out.println("Label of unlabelled point is:" + p.getLabel());
 						microClusters.get(base++).attachPoint(p);
 					}
 				}
@@ -214,7 +215,7 @@ public class Model {
 		int pointsChanged = 1;
 		int iterations = 0;
 		while(pointsChanged > 0){
-			if(iterations > 5000){
+			if(iterations > 1000){
 				break;
 			}
 			pointsChanged = 0;
@@ -242,13 +243,16 @@ public class Model {
 			iterations++;
 			//Total value calculated to ensure that expectation minimisation is in fact converging.
 			
-			//System.out.println("Total Value for EM: " + totalValue);
-			//System.out.println("Points changed: " + pointsChanged);
-			//System.out.println("Points changed by the change in centroids: " + changedByRecalcCent);
+//			System.out.println("Total Value for EM: " + totalValue);
+//			System.out.println("Points changed: " + pointsChanged);
+//			System.out.println("Points changed by the change in centroids: " + changedByRecalcCent);
 			/*for(DataPoint d: dataPoints){
 				System.out.println("Point " + d.getAbsoluteIndex() + " is in cluster " + d.getClusterIndex());
 			}*/
 			//System.out.println("PrevEm: " + prevEm+", diff:" + (totalValue-prevEm));
+			if(Math.abs(totalValue - prevEm) < 0.001){
+				break;
+			}
 			prevEm = totalValue;
 			//System.out.println("Iterations: " + iterations);
 		}
@@ -263,7 +267,7 @@ public class Model {
 			MacroCluster current = macroClusters.get(i);
 			double currentDistance = current.calcEMScore(d);
 			//System.out.println("Current EMS:" + currentDistance);
-			if(currentDistance < minDistance){
+			if(currentDistance < minDistance || (currentDistance == minDistance && macroClusters.get(smallIndex).getDataPoints().size() != 0)){
 				minDistance = currentDistance;
 				smallIndex = i;
 			}
@@ -393,14 +397,14 @@ public class Model {
 			}
 			iterations++;
 		}
-		for(int i = 0; i < vectorLength; i++){
-			System.out.print("microCluster " + i +": ");
-			for(int j = 0; j < c+1; j++){
-				System.out.print( tZero[i][j]+" ");
-			}
-			System.out.println();
-		}
-		//System.out.println("Iterations: " + iterations);
+//		for(int i = 0; i < vectorLength; i++){
+//			System.out.print("microCluster " + i +": ");
+//			for(int j = 0; j < c+1; j++){
+//				System.out.print( tZero[i][j]+" ");
+//			}
+//			System.out.println();
+//		}
+//		System.out.println("Iterations: " + iterations);
 		for(int i = 0; i < vectorLength; i++){
 			if(pseudoPoints.get(i).getLabel() != -1){
 				continue;
@@ -499,14 +503,14 @@ public class Model {
 				pseudoPoints.remove(i);
 				neighbours.remove(i);
 				i--;
-				System.out.println("Point Removed on accuracy check in " + this);
+				//System.out.println("Point Removed on accuracy check in " + this);
 			}
 		}
 		
 	}
 	
 	public double classificationScore(ArrayList<DataPoint> data){
-		int misClassify = 0;
+		double misClassify = 0;
 		for(DataPoint d: trainingData){
 			if(d.getLabel() != predictLabelValue(d, 0.25)){
 				//System.out.println("Predicted label: " + currentMod.predictLabelValue(d, 0.25) + " and the actual label is " + d.getLabel());
@@ -515,6 +519,10 @@ public class Model {
 		}
 		double rating = 1-(double)misClassify/data.size();
 		return rating;
+	}
+
+	public void setNumClass(int numClasses2) {
+		this.c = numClasses2;
 	}
 
 	

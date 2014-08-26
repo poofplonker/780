@@ -30,13 +30,15 @@ public class DataProcessor {
 		return seenClasses;
 	}
 	
-	public DataPoint processPoint(MersenneTwister twister){
+	public DataPoint processPoint(MersenneTwister twister, boolean training){
 		
 		//handle this properly ffs
 		String[] values = new String[vectorLength];
 		try {
 			if(br.ready()){
 			  values = br.readLine().split(",");
+			}else{
+				return null;
 			}
 		}catch (IOException e) {
 			// TODO Auto-generated catch block
@@ -57,13 +59,17 @@ public class DataProcessor {
 		DataPoint d;
 		//remove class label
 		DataType classLabel = dataValues.remove(dataValues.size()-1);
-		if(!classMap.containsKey(((CategoricalData) classLabel).getRaw())){
-			classMap.put(((CategoricalData) classLabel).getRaw(),1);
-			seenClasses++;
+		if(training){
+			if(!classMap.containsKey(((CategoricalData) classLabel).getRaw())){
+				classMap.put(((CategoricalData) classLabel).getRaw(),1);
+				seenClasses++;
+			}
 		}
 		//simulation of unlabelled data
 		if(twister.nextDouble() < percentUnlabelled){
 			d = new DataPoint(dataValues, classLabel, ((CategoricalData)classLabel).numerValue(), false);
+		}else if(!training){
+			d = new DataPoint(dataValues, classLabel, ((CategoricalData)classLabel).numerValue(), false);	
 		}else{
 			d = new DataPoint(dataValues, classLabel,((CategoricalData)classLabel).numerValue(),true);
 			
