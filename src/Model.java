@@ -90,7 +90,7 @@ public class Model {
 	}
 	
 	//this is supposed to be based on class values in the entire dataset, not for datachunks. TBF
-	public void initialiseClusters(MersenneTwister twister){
+	private void initialiseClusters(MersenneTwister twister){
 		int base = 0;
 		//precompute the number of centroids per class
 		int[] centroidCounter = new int[c];

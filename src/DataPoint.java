@@ -68,9 +68,9 @@ public class DataPoint {
 		double[] difference = getDistanceVector(other.getData());
 		double value = 0;
 		for (int i = 0; i < this.vectorLength; i++){
-			if(difference[i] < 0){
-				System.out.println("An error has occurred in the distance measurement.");
-			}
+//			if(difference[i] < 0){
+//				System.out.println("An error has occurred in the distance measurement.");
+//			}
 			value += difference[i]*difference[i];
 		}
 		//System.out.println("Value in getDistanceValue:" + value);
@@ -81,9 +81,14 @@ public class DataPoint {
 	//returns vector of distances between points in each dimension of two dataPoints.  
 	public double[] getDistanceVector(ArrayList<DataType> arrayList){
 		double[] distanceVector = new double[this.vectorLength];
-		for(int i = 0; i < this.vectorLength; i++){
+		//System.out.println("The vectorLength set in dataPoint is:" + this.vectorLength);
+		//System.out.println("The length of the arraylist being passed in is however:"+ this.data.size());
+		for(int i = 0; i < arrayList.size(); i++){
 			
 			distanceVector[i] = this.data.get(i).normDistance(arrayList.get(i));
+			if(distanceVector[i] < 0){
+				System.out.println(arrayList.get(i) + " " + ((DoubleData)this.data.get(i)).getRaw());
+			}
 			//System.out.println("Distance in dimension "+ i + ": " + distanceVector[i]);
 		}
 		return distanceVector;
@@ -112,5 +117,10 @@ public class DataPoint {
 	public DataType getClassLabel() {
 		// TODO Auto-generated method stub
 		return classLabel;
+	}
+
+	public void setToLabelled() {
+		this.isLabeled = true;
+		
 	}
 }

@@ -14,32 +14,32 @@ public class Main {
 
 	public static void main(String[] args) throws IOException {
 		PrintWriter writer = new PrintWriter("output/KDDtest1.txt", "UTF-8");
-		
+		int chunkSize = 500;
+		boolean synthetic = true;
 		int l = 6;
 		int k = 50;
 		int testNumber = 20;
 		double percentUnlabelled = 0.9;
 		writer.println("For each test: ");
 		LinkedList<Double> results = new LinkedList<Double>();
-//		results = ReaSC(l, k, percentUnlabelled);
-//		writePercents(results, writer, 0);
-//		LinkedList<Double> currentResult;
-//		for(int i = 1; i < testNumber; i++){
-//			System.out.println("Test " + i + " complete");
-//			currentResult = ReaSC(l,k,percentUnlabelled);
-//			writePercents(currentResult, writer, i);
-//			for(int j = 0; j < currentResult.size(); j++){
-//				results.set(j, results.get(j)+currentResult.get(j));
-//			}
-//		}
+		results = ReaSC(l, k, percentUnlabelled, chunkSize, synthetic);
+		writePercents(results, writer, 0);
+		LinkedList<Double> currentResult;
+		for(int i = 1; i < testNumber; i++){
+			System.out.println("Test " + i + " complete");
+			currentResult = ReaSC(l,k,percentUnlabelled, chunkSize, synthetic);
+			writePercents(currentResult, writer, i);
+			for(int j = 0; j < currentResult.size(); j++){
+				results.set(j, results.get(j)+currentResult.get(j));
+			}
+		}
 		for(int j = 0; j < testNumber; j++){
-			//results.set(j,results.get(j)/testNumber);
-			results.add(0.95);
+			results.set(j,results.get(j)/testNumber);
 		}
 		writer.println("Final Result:");
 		writePercents(results, writer, -1);
 		writer.close();
-		Graphing.exportGraph(results, "output/kddgraph");
+		Graphing.exportGraph(results, "output/synD.png");
 	}
 	
 	public static void writePercents(LinkedList<Double> list, PrintWriter p, int test){
@@ -52,28 +52,36 @@ public class Main {
 		p.println();
 	}
 	
-	public static LinkedList<Double> ReaSC(int l, int k, double percentUnlabelled) throws IOException{
-		BufferedReader br = new BufferedReader(new FileReader("input/kddcup.data_10_percent_corrected"));
+	public static LinkedList<Double> ReaSC(int l, int k, double percentUnlabelled, int chunSize, boolean synthetic) throws IOException{
+		BufferedReader br;
+		if(!synthetic){
+			br = new BufferedReader(new FileReader("input/kddcup.data_10_percent_corrected"));
+		}else{
+			br = null;
+		}
 		MersenneTwister twist = new MersenneTwister(new java.util.Date());
 		int c = 0;
 		Ensemble ens = new Ensemble(l,k);
 		int vectorLength = 0;	//length of datavector
-		int chunkSize = 1600;	//chunksize
+		int chunkSize = chunSize;	//chunksize
 			//number of clusters
 		LinkedList<Double> percentArray = new LinkedList<Double>();
-		
-		try {
-			vectorLength = br.readLine().split(",").length;
-			System.out.println("Length: " + vectorLength);
+		if(!synthetic){
+			try {
+				vectorLength = br.readLine().split(",").length;
+				System.out.println("Length: " + vectorLength);
 			
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
+			} catch (IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}else{
+			vectorLength = 21;
 		}
-		DataProcessor d = new DataProcessor(vectorLength, percentUnlabelled,br);
+		DataProcessor d = new DataProcessor(vectorLength, percentUnlabelled,br,synthetic,twist);
 		int iterations = 0;
-		while(br.ready()){
-			DataChunk chunk = new DataChunk(chunkSize, d,twist);
+		while(d.moreInput()){
+			DataChunk chunk = new DataChunk(chunkSize, d,twist, percentUnlabelled);
 			vectorLength = chunk.getDataPointArray().get(0).getData().size();
 			if(chunk.getDataPointArray().size() < chunkSize){
 				return percentArray;
@@ -81,7 +89,6 @@ public class Main {
 			c = d.getSeenClasses();
 			ens.expandClasses(c);
 			if(iterations > 2){
-				
 				ens.predictChunkForClustering(chunk);
 			}
 			//System.out.println("Length now: " + vectorLength);
@@ -91,8 +98,11 @@ public class Main {
 			m.propagateLabels(3, 0.25);
 			ens.addModel(m);
 			iterations++;
-			ens.predictChunk(chunk);
+			if(iterations > 2){
+				ens.predictChunk(chunk);
+			}
 			System.out.println("After " + iterations +" iterations, the accuracy is:" + ens.getAccuracy());
+			System.out.println();
 			percentArray.add(ens.getAccuracy());
 			
 		}

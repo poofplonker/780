@@ -27,7 +27,8 @@ public class Cluster {
 		
 		for(DataPoint d: points){
 			for(int i =0; i < length; i++){
-			DataType dat = d.getData().get(i);
+				DataType dat = d.getData().get(i);
+				//System.out.println("Length of the point in recalculation is:" + d.getData().size());
 				if(dat instanceof DoubleData){
 					doubleRaws[i] += ((DoubleData)dat).getRaw();
 				}else if(dat instanceof IntegerData){

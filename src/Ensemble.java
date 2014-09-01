@@ -184,7 +184,7 @@ public class Ensemble {
 			if(predictedClass == d.getActualLabel()){
 				success++;
 			}else{
-				System.out.println("Incorrect Point -- Label:" + d.getActualLabel() + " Predicted Label: " + predictedClass + " Listed Label: " + ((CategoricalData)d.getClassLabel()).getRaw());
+				//System.out.println("Incorrect Point -- Label:" + d.getActualLabel() + " Predicted Label: " + predictedClass + " Listed Label: " + ((CategoricalData)d.getClassLabel()).getRaw());
 			}
 			classifications++;
 		}
@@ -203,9 +203,11 @@ public class Ensemble {
 	
 	public void predictChunk(DataChunk d){
 		for(DataPoint x: d.getTestData()){
-			//if(!x.isLabeled()){
+			if(!x.isLabeled()){
 				predictPoint(x,ensemble.get(0).getNumClass(),true);
-			//}
+			}else{
+				System.out.println("This is broken");
+			}
 		}
 		
 	}

@@ -3,3 +3,7 @@ Problems with the LabelStream algorithm:
 1) Need to fix problem where there are duplicate points in the datachunk and there are duplicate centroids leading
 to empty centroids
 2) Implement pseudopoint deletion for inaccurate pseudopoints. 
+
+Late August:
+
+- Change the model evaluation to be the real test data, not the data that the original model was trained on. 
