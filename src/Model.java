@@ -9,27 +9,36 @@ import cern.jet.random.engine.MersenneTwister;
 
 public class Model {
 	private int chunkSize;
-	private int numClasses;
+	private int index;
 	private ArrayList<MacroCluster> macroClusters;
 	private ArrayList<MicroCluster> microClusters;
 	private ArrayList<Boolean> seenClass;
 	private ArrayList<PseudoPoint> pseudoPoints;
 	private ArrayList<DataPoint> trainingData;
 	private DataChunk dataChunk;
-	
+	private int totalPoints;
+	private int[] classData;
 	private int k;
 	private int c;
 	
-	public Model(MersenneTwister twister, DataChunk chunk, int k, int c){
+	public Model(MersenneTwister twister, DataChunk chunk, int k, int c, int[] classData, int totalPoints, int index){
 		this.dataChunk = chunk;
 		this.chunkSize = chunk.getChunkSize();
 		this.seenClass = chunk.seenClass(c);
 		this.trainingData = chunk.getTrainingData();
 		this.k = k;
 		this.c = c;
+		this.index = index;
+		this.classData = classData;
+		this.totalPoints = totalPoints;
 		clusterData(twister);
 		genMicroClusters();
 		createPseudoPoints();
+
+	}
+	
+	public int getIndex(){
+		return index;
 	}
 	
 	public void incrementClass(){
@@ -45,11 +54,6 @@ public class Model {
 	
 	private void genMicroClusters() {
 		//count the number of microclusters that will be required
-		int counter = 0;
-		for(MacroCluster m: macroClusters){
-			counter += m.countMicroClusters();
-		}
-		System.out.println("Counter: " + counter);
 		//for each cluster, examine its points and place in appropriate microcluster.
 		microClusters = new ArrayList<MicroCluster>();
 
@@ -87,6 +91,7 @@ public class Model {
 			m.recalculateCentroid();
 			//System.out.println(m);
 		}
+		System.out.println("Number of micro-clusters: " + microClusters.size());
 	}
 	
 	//this is supposed to be based on class values in the entire dataset, not for datachunks. TBF
@@ -98,7 +103,8 @@ public class Model {
 		int[] classCounter = dataChunk.getClassCounter(c);
 		int totalAssigned = 0;
 		for(int j = 0; j < c && dataChunk.getNumLabelledPoints() != 0; j++){
-			centroidCounter[j] = (int)(k*classCounter[j])/dataChunk.getNumLabelledPoints();
+			centroidCounter[j] = Math.round((k*classCounter[j])/totalPoints);
+			//System.out.println("We need " + centroidCounter[j] + " centroids to be initialised as class " + j);
 			totalAssigned += centroidCounter[j];
 		}
 		while(totalAssigned < k){
@@ -111,7 +117,11 @@ public class Model {
 		}
 		for(int i = 0; i < dataPoints.size(); i++){
 			DataPoint currentPoint = dataPoints.get(i);
-			classPoints.get(currentPoint.getLabel()).add(currentPoint);
+			
+			if(currentPoint.isLabeled()){
+				//System.out.println("Adding a point to " + currentPoint.getLabel());
+				classPoints.get(currentPoint.getLabel()).add(currentPoint);
+			}
 		}
 		for(int j = 0; j < c; j++){
 			int i = 0; //number of clusters initialised
@@ -120,7 +130,7 @@ public class Model {
 			
 			//we initialise the number of clusters for a class proportional to the represet
 			int representation = centroidCounter[j];
-			//System.out.println("Class " + j + " has " + representation + " clusters to initiate");
+			System.out.println("Class " + j + " has " + representation + " clusters to initiate");
 			LinkedList<DataPoint> thisClassPoints = classPoints.get(j);
 			
 			//get all points of this class
@@ -128,11 +138,12 @@ public class Model {
 			LinkedList<DataPoint> visitedSet = new LinkedList<DataPoint>();
 			if(thisClassPoints.size() > representation){
 			//employ farthest first heuristic to select the points from this class
-				
+				//System.out.println("Using farthest first");
 				boolean[] contained = new boolean[thisClassPoints.size()];
 				int index = Math.abs(twister.nextInt()) % thisClassPoints.size();
 				//System.out.println("Initial Index : " + index);
 				DataPoint centroid = thisClassPoints.get(index);
+				//System.out.println("Initial centroid: " + centroid);
 				visitedSet.add(centroid);
 				contained[index] = true;
 				i++;
@@ -149,6 +160,7 @@ public class Model {
 							 thisDistance += c.getDistanceValue(thisClassPoints.get(d));
 							 //System.out.println("Distance from point " + c.getAbsoluteIndex() + " to point " + thisClassPoints.get(d).getAbsoluteIndex() + " : " + c.getDistanceValue(thisClassPoints.get(d)));
 						}
+						//System.out.println("Point: " + thisClassPoints.get(d) + "is " + thisDistance + " distance away");
 						if(thisDistance > maxDistance){
 							maxDistance = thisDistance;
 							maxIndex = d;
@@ -156,6 +168,7 @@ public class Model {
 					}
 					contained[maxIndex] = true;
 					visitedSet.add(thisClassPoints.get(maxIndex));
+					//System.out.println("Added " + thisClassPoints.get(maxIndex) + " as the furthest away point with distance " + maxDistance);
 					i++;
 				}
 				
@@ -176,12 +189,16 @@ public class Model {
 			}
 			i = 0;
 			for(DataPoint d: visitedSet){
-				macroClusters.add(new MacroCluster(d,i+base,c));
+				MacroCluster temp = new MacroCluster(d,i+base,c);
+				temp.attachPoint(d);
+				d.setCentroid();
+				macroClusters.add(temp);
+				
 				i++;
 			}
 			base += representation;
 		}
-		System.out.println("NUmber of generated macro-clusters: " + base);
+		System.out.println("Number of generated macro-clusters: " + base);
 	}
 
 	public ArrayList<MacroCluster> clusterData(MersenneTwister twister){
@@ -197,7 +214,10 @@ public class Model {
 		//initialise all dataPoints to cluster with nearest centroid.
 		double totalValue = 0;
 		for(DataPoint d: dataPoints){
-			totalValue += attachToNearestImp(d);
+			//CHECK TO SEE D WAS NOT ALREADY IN THE CLUSTER
+			if(!d.isCentroid()){
+				totalValue += attachToNearestImp(d);
+			}
 		}
 		/*for(DataPoint d: dataPoints){
 			System.out.println("Point " + d.getAbsoluteIndex() + " is in cluster " + d.getClusterIndex());
@@ -206,6 +226,13 @@ public class Model {
 
 		//System.out.println("Total Value for EM: " + totalValue);
 		expectationMinimisation(clusters,dataPoints);
+//		for(int i = 0; i < clusters.size(); i++){
+//			System.out.println("Cluster " + i + " has " + clusters.get(i).totalPoints + " points and " + clusters.get(i).countNumClasses()+ "classes");
+////			for(int j = 0; j < clusters.get(i).totalPoints; j++){
+////				DataPoint temp = clusters.get(i).getDataPoints().get(j);
+////				//System.out.println("\t" + temp.getLabel() + " distance to cent:" + temp.getDistanceValue(clusters.get(i).getCentroid()) + "Averaage dist to others: " + temp.getAverageDist());
+////			}
+//		}
 		return clusters;
 		
 	}
@@ -215,9 +242,6 @@ public class Model {
 		int pointsChanged = 1;
 		int iterations = 0;
 		while(pointsChanged > 0){
-			if(iterations > 1000){
-				break;
-			}
 			pointsChanged = 0;
 			int changedByRecalcCent = 0;
 			//recalculate the cluster centroids based on the datapoints in the clusters
@@ -225,15 +249,19 @@ public class Model {
 				DataPoint newCentroid = clusters.get(i).recalculateCentroid();
 				//System.out.print("New centroid for cluster " + i +": " + newCentroid);
 				//System.out.println();
-				clusters.set(i, new MacroCluster(newCentroid,i,c));
+				clusters.get(i).setCentroid(newCentroid);;
 			}
 			//attach all points to position geometrically nearest to them
 			Collections.shuffle(dataPoints);
 			double totalValue = 0;
 			for(DataPoint d: dataPoints){
+				clusters.get(d.getClusterIndex()).removePoint(d);
 				int prevSmallIndex = d.getClusterIndex();
 				totalValue += attachToNearestImp(d);
 				if(d.getClusterIndex() != prevSmallIndex){
+					//System.out.println("Point " + d.getAbsoluteIndex() +" with label " + d.getLabel() + " has moved from " + prevSmallIndex + " to " + d.getClusterIndex());
+					clusters.get(prevSmallIndex).setChanged();
+					clusters.get(d.getClusterIndex()).setChanged();
 					changedByRecalcCent++;
 					pointsChanged++;
 					//System.out.println("Point " + d.getAbsoluteIndex() + " was in " + prevSmallIndex + " and is now in " + d.getClusterIndex());
@@ -242,30 +270,39 @@ public class Model {
 		
 			iterations++;
 			//Total value calculated to ensure that expectation minimisation is in fact converging.
-			
-//			System.out.println("Total Value for EM: " + totalValue);
-//			System.out.println("Points changed: " + pointsChanged);
+			if(iterations > 1000){
+				System.out.println("EM broken by iteration limit");
+				break;
+			}
+			//System.out.println("Total Value for EM: " + totalValue);
+			//System.out.println("Points changed: " + pointsChanged);
 //			System.out.println("Points changed by the change in centroids: " + changedByRecalcCent);
 			/*for(DataPoint d: dataPoints){
 				System.out.println("Point " + d.getAbsoluteIndex() + " is in cluster " + d.getClusterIndex());
 			}*/
 			//System.out.println("PrevEm: " + prevEm+", diff:" + (totalValue-prevEm));
-			if(Math.abs(totalValue - prevEm) < 0.001){
-				break;
-			}
+
 			prevEm = totalValue;
 			//System.out.println("Iterations: " + iterations);
 		}
+		for(int i = 0; i < k; i++){
+			DataPoint newCentroid = clusters.get(i).recalculateCentroid();
+			clusters.get(i).setCentroid(newCentroid);
+		}
+		System.out.println("EM Done in " + iterations + " iterations.");
 		
 	}
 
 	private double attachToNearestImp(DataPoint d){
 		double minDistance = Double.MAX_VALUE;
 		int smallIndex = 0;
+		d.resetAverageDist();
 		//see which centroid is closest
 		for(int i = 0; i < k; i++){
 			MacroCluster current = macroClusters.get(i);
+			current.attachPoint(d);
 			double currentDistance = current.calcEMScore(d);
+			current.removePoint(d);
 			//System.out.println("Current EMS:" + currentDistance);
 			if(currentDistance < minDistance || (currentDistance == minDistance && macroClusters.get(smallIndex).getDataPoints().size() != 0)){
 				minDistance = currentDistance;
@@ -278,38 +315,35 @@ public class Model {
 		//System.out.println("Distance to cluster: " + minDistance);
 		return minDistance;
 	}
-	private void attachToNearest(DataPoint d) {
-		double minDistance = Double.MAX_VALUE;
-		int smallIndex = 0;
-		//see which centroid is closest
-		for(int i = 0; i < k; i++){
-			double currentDistance = macroClusters.get(i).getCentroid().getDistanceValue(d);
-			//System.out.println("Current Distance:" + currentDistance);
-			if(currentDistance < minDistance){
-				minDistance = currentDistance;
-				smallIndex = i;
-			}
-		}
-		//add to cluster nearest
-		macroClusters.get(smallIndex).attachPoint(d);
-		//System.out.println("Attached point " + d.getAbsoluteIndex() + " to cluster " + smallIndex);
-		//System.out.println("Distance to cluster: " + minDistance);
-		return;
-	}
 	
 	public void createPseudoPoints(){
-		pseudoPoints = new ArrayList<PseudoPoint>(microClusters.size());
+		pseudoPoints = new ArrayList<PseudoPoint>();
 		for(int i = 0; i < microClusters.size();i++){
 			MicroCluster m = microClusters.get(i);
 			DataPoint centroid = m.recalculateCentroid();
 			int label = m.getLabel();
 			int weight = m.getDataPoints().size();
-			pseudoPoints.add(i, new PseudoPoint(centroid,weight,label));
+			pseudoPoints.add(new PseudoPoint(centroid,weight,label));
 		}
 	}
 	
-	public void propagateLabels(double r, double stddev){
+	public void propagateLabels(double r, double stddev,ArrayList<Model> contig){
+		ArrayList<PseudoPoint> workingList  = new ArrayList<PseudoPoint>();
 		int vectorLength = pseudoPoints.size();
+		for(int i = 0; i < vectorLength; i++){
+			workingList.add(pseudoPoints.get(i));
+		}
+		for(Model m: contig){
+			ArrayList<PseudoPoint> temp = m.getPseudo();
+			for(int i = 0; i < temp.size(); i++){
+				if(temp.get(i).isLabelled()){
+					workingList.add(temp.get(i));
+					vectorLength++;
+					//System.out.println("Is labelled:" + temp.get(i));
+				}
+			}
+		}
+		Collections.sort(workingList);
 		Collections.sort(pseudoPoints);
 //		for(int i = 0; i < vectorLength; i++){
 //			System.out.println(pseudoPoints.get(i).toString());
@@ -318,55 +352,78 @@ public class Model {
 		double alpha = 0.99;
 		double[][] weights = new double[vectorLength][vectorLength];
 		double[][] diag = new double[vectorLength][vectorLength];
+		double[][] diagOther = new double[vectorLength][vectorLength];
+		double[] colCounter = new double[vectorLength];
 		//System.out.println("Testing weights:");
 		for(int i = 0; i < vectorLength; i++){
 			double counter= 0;
+			//System.out.println("For point of label " + workingList.get(i).getLabel());
+			double distToZero = 0;
+			int zeroCount = 0;
+			double distToOne = 0;
+			int oneCount = 0;
 			for(int j = 0; j < vectorLength; j++){
 				if(i ==j){	
 					weights[i][j] =0;
 					//System.out.print(weights[i][j] + " ");
 					continue;
 				}
-				PseudoPoint ith = pseudoPoints.get(i);
-				PseudoPoint jth = pseudoPoints.get(j);
-				double[] distValues = ith.getCentroid().getDistanceVector(jth.getCentroid().getData());
-				double distance = 0;
-				for(double d: distValues){
-					distance += d;
-				}
+				PseudoPoint ith = workingList.get(i);
+				PseudoPoint jth = workingList.get(j);
+				double distance = ith.getCentroid().getDistanceValue(jth.getCentroid());
+
 				//System.out.println("Distance for  " + i + " "+ j + ": "+ distance );
 				weights[i][j] = Math.exp(-1*(distance/(2*stddev*stddev)))*jth.getWeight();
+				//sSystem.out.println("Associated weight:" + Math.exp(-1*(distance/(2*stddev*stddev))));
 				counter += weights[i][j];
+				colCounter[j] += weights[i][j];
 				//System.out.print(weights[i][j] + " ");
+				if(workingList.get(j).getLabel() == 0){
+					distToZero += weights[i][j];
+					zeroCount++;
+				}else if(workingList.get(j).getLabel() == 1){
+					distToOne += weights[i][j];
+					oneCount++;
+				}
 
 			}
 			diag[i][i] = counter;
+			//System.out.println("Total distance to zero labelled centroids:" + distToZero/zeroCount );
+			//System.out.println("Total distance to one labelled centroids:" + distToOne/oneCount );
 			//System.out.println();
 		}
 		//System.out.println("Diagonal:");
 		for(int i = 0; i < vectorLength; i++){
 			//System.out.println("Diag new: " + diag[i][i]);
 			diag[i][i] = ((double)1)/Math.sqrt(diag[i][i]);
+			diagOther[i][i] = ((double)1)/Math.sqrt(colCounter[i]); 
 			//System.out.println("Diag after: " + diag[i][i]);
 		}
 		//System.out.println();
+		Matrix dOther = new Matrix(diagOther);
 		Matrix d = new Matrix(diag);
 		Matrix w = new Matrix(weights);
 		//System.out.println("Laplacian normalised:");
 		//laplacian normalisation
 		Matrix p = d.times(w).times(d);
 		double[][] normLaplace = p.getArray();
-//		for(int i = 0; i < vectorLength; i++){
-//			for(int j = 0; j < vectorLength; j++){
-//				//System.out.print(normLaplace[i][j] + " ");
-//			}
-//			//System.out.println();
-//			//System.out.println("For row " + i + " the sum is:" + counter );
-//		}
+		for(int i = 0; i < vectorLength; i++){
+			double counter = 0;
+			double counterother = 0;
+			for(int j = 0; j < vectorLength; j++){
+				//System.out.println("Actual: " + normLaplace[i][j] + " expected:" + weights[i][j]*diag[i][i]*diag[j][j]);
+				counter += normLaplace[j][i];
+				counterother += normLaplace[i][j];
+			}
+//			System.out.println("");
+//			System.out.println("Weight of " + i + " is " + workingList.get(i).getWeight());
+//			System.out.println("Level of influence exerted by " + i +" is : " + counter );
+//			System.out.println("Level of influence exerted on " + i +" is : " + counterother );
+		}
 
 		double[][] tZero = new double[vectorLength][c+1];
 		for(int i = 0; i < vectorLength; i++){
-			int curClass = pseudoPoints.get(i).getLabel()+1;
+			int curClass = workingList.get(i).getLabel()+1;
 			for(int j = 0; j < c+1; j++){
 				if(j == curClass && curClass != 0){
 					tZero[i][j] = 1;
@@ -382,42 +439,59 @@ public class Model {
 		Matrix prevT = tZeroMat;
 		boolean converge = false;
 		int iterations = 0;
-		double epsilon = 0.001;
+		double epsilon = 0.00001;
 		while(!converge){
 			prevT = currentT;
-			currentT = p.times(alpha).times(currentT).plus(tZeroMat.times(1-alpha));
-			tZero = currentT.getArray();
+			currentT = p.times(prevT).times(alpha).plus(tZeroMat.times(1-alpha));
+			
+			//tZero = currentT.getArray();
 			converge = true;
 			for(int i = 0; i < vectorLength; i++){
 				for(int j = 0; j < c+1; j++){
-					if(prevT.get(i, j) - currentT.get(i,j) > epsilon){
+					if(Math.abs(prevT.get(i, j) - currentT.get(i,j)) > epsilon){
 						converge = false;
 					}
 				}
 			}
 			iterations++;
 		}
-//		for(int i = 0; i < vectorLength; i++){
-//			System.out.print("microCluster " + i +": ");
-//			for(int j = 0; j < c+1; j++){
-//				System.out.print( tZero[i][j]+" ");
-//			}
-//			System.out.println();
-//		}
-//		System.out.println("Iterations: " + iterations);
-		for(int i = 0; i < vectorLength; i++){
-			if(pseudoPoints.get(i).getLabel() != -1){
-				continue;
-			}
-			int index = -1;
-			double maxValue = 0 ;
+		/*for(int i = 0; i < vectorLength; i++){
+			System.out.print("microCluster " + i +": ");
 			for(int j = 0; j < c+1; j++){
-				if(currentT.get(i,j) > maxValue){
-					index = j;
-					maxValue = currentT.get(i,j);
-				}
+				System.out.print( currentT.get(i,j)+" ");
 			}
-			pseudoPoints.get(i).setClass(index-1);
+			System.out.println();
+		}*/
+		System.out.println("Label prop converges after Iterations: " + iterations);
+		
+		/*HAVE PROBLEM - SINCE INCORPORATING PREVIOUS MICROCLUSTERS, 
+		 CANNOT CORRESPOND BETWEEN POINT GENERATED IN LABEL PROP AND 
+		 UNLABELLED MICROCLUSTER IN CURRENT
+		 */
+		for(int i = pseudoPoints.size()-1; i >= 0;i--){
+			for(int k = vectorLength-1; k >= 0;k--){
+				if(workingList.get(k).getCentroid() != pseudoPoints.get(i).getCentroid()){
+					continue;
+				}
+				int index = -1;
+				double maxValue = 0;
+				for(int j = 0; j < c+1; j++){
+					if(currentT.get(i,j) > maxValue){
+						index = j;
+						maxValue = currentT.get(i,j);
+					}
+				}
+				if(pseudoPoints.get(i).getLabel() == -1){
+					pseudoPoints.get(i).setClass(index-1);
+				}
+//				}else{
+//					if(pseudoPoints.get(i).getLabel() != index-1){
+//						System.out.println("Point " + i + " has been mispredicted in label propagation: was" + pseudoPoints.get(i).getLabel() + " but now "+ (index-1));
+//					}
+//				}
+				break;
+			}
+			
 		}
 //		for(int i = 0; i < vectorLength; i++){
 //			System.out.println("Point "+ i + ": " + pseudoPoints.get(i).getLabel());
@@ -426,23 +500,39 @@ public class Model {
 	}
 	
 	public Matrix predictLabel(DataPoint d, double stddev){
-		double epsilon = 0.001;
+		double epsilon = 1e-10;
 		Matrix predictMatrix = new Matrix(1, c+1);
 		double normalisation = epsilon;
 		for(PseudoPoint p: pseudoPoints){
-			Matrix pointMatrix = new Matrix(1,c+1);
-			double[] distValues = d.getDistanceVector(p.getCentroid().getData());
-			double distance = 0;
-			for(double x: distValues){
-				distance += x;
+			if(!p.isLabelled()){
+				continue;
 			}
-			//System.out.println("Distance for  " + i + " "+ j + ": "+ distance );
+			Matrix pointMatrix = new Matrix(1,c+1);
+			double distance = d.getDistanceValue(p.getCentroid());
+			//System.out.println("Distance from point to pseudo: "+ distance );
 			double weight = Math.exp(-1*(distance/(2*stddev*stddev)))*p.getWeight();
+			//System.out.println("Associated weight:" + Math.exp(-1*(distance/(2*stddev*stddev))));
+
+			
 			pointMatrix.set(0, p.getLabel()+1, weight);
+
 			predictMatrix.plusEquals(pointMatrix);
+			
 			normalisation += weight;
 		}
-		predictMatrix.times((double)1/normalisation);
+//		System.out.println("Before normalisation:");
+//		for(int i = 0; i < c+1; i++){
+//			System.out.print(predictMatrix.get(0, i) + " ");
+//		}
+//		System.out.println();
+		predictMatrix.timesEquals(((double)1)/normalisation);
+		//System.out.println("Normalisation: "+ normalisation );
+//		System.out.println("After:");
+//		
+//		for(int i = 0; i < c+1; i++){
+//			System.out.print(predictMatrix.get(0, i) + " ");
+//		}
+//		System.out.println();
 		return predictMatrix;
 	}
 
@@ -473,6 +563,8 @@ public class Model {
 		for(int i = 0; i < pseudoPoints.size(); i++){
 			neighbours.add(new LinkedList<DataPoint>());
 		}
+		
+		//for every datapoint in the training set, find the pseudopoint which is closest to it. 
 		for(int i = 0; i < trainingData2.size(); i++){
 			DataPoint currentPoint = trainingData2.get(i);
 			double minDistance = Double.MAX_VALUE;
@@ -500,10 +592,11 @@ public class Model {
 				}
 			}
 			if(correctCounter/neighbours.get(i).size() < boundary){
+				System.out.println("Removing " + pseudoPoints.get(i) + " in model "+ getIndex());
 				pseudoPoints.remove(i);
 				neighbours.remove(i);
 				i--;
-				//System.out.println("Point Removed on accuracy check in " + this);
+				
 			}
 		}
 		
@@ -511,13 +604,25 @@ public class Model {
 	
 	public double classificationScore(ArrayList<DataPoint> data){
 		double misClassify = 0;
-		for(DataPoint d: trainingData){
-			if(d.getLabel() != predictLabelValue(d, 0.25)){
+		int zeroCounter = 0;
+		int oneCounter = 0;
+		for(DataPoint d: data){
+			int predicted = predictLabelValue(d, 0.25);
+			if(d.getLabel() != predicted){
 				//System.out.println("Predicted label: " + currentMod.predictLabelValue(d, 0.25) + " and the actual label is " + d.getLabel());
 				misClassify++;
 			}
+			if(predicted ==1){
+				oneCounter++;
+			}else if(predicted == 0){
+				zeroCounter++;
+			}
 		}
+		//System.out.println("For single model 0 was predicted: " + zeroCounter +" times");
+		//System.out.println("For single model 1 was predicted: " + oneCounter +" times");
 		double rating = 1-(double)misClassify/data.size();
+		//System.out.println("Misclassify:" + misClassify);
+		//System.out.println("Number of tests: " + data.size());
 		return rating;
 	}
 

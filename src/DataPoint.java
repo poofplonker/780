@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 
+import Jama.util.Maths;
 import sun.tools.tree.ThisExpression;
 
 /* Class which holds a single instance of data, along with information regarding the classification of that data.*/
@@ -14,6 +15,9 @@ public class DataPoint {
 	private ArrayList<DataType> data;	//Data with category and such
 	private int vectorLength;
 	private int clusterIndex;			//Which cluster the dataPoint is in. 
+	private double averageDist;
+	private int avCounter = 0;
+	private boolean isCentroid;
 	
 	public DataPoint(ArrayList<DataType> data, DataType classLabel, int i,boolean isLabeled){
 		this.actualLabel = i;
@@ -23,8 +27,30 @@ public class DataPoint {
 		this.isLabeled = isLabeled;
 		this.classLabel = classLabel;
 		this.absoluteIndex = num_dataPoints++;
+		this.averageDist = 0;
+		this.isCentroid = false;
+		
+	}
+	public void setCentroid(){
+		isCentroid = true;
 	}
 	
+	public boolean isCentroid(){
+		return isCentroid;
+	}
+	public void resetAverageDist(){
+		this.averageDist = 0;
+		avCounter = 0;
+	}
+	
+	public void incrementAverageDist(double distance){
+		this.averageDist +=distance; 
+		avCounter++;
+	}
+	
+	public double getAverageDist(){
+		return averageDist/avCounter;
+	}
 	public void setClusterIndex(int clusterIndex){
 		this.clusterIndex = clusterIndex;
 	}
@@ -41,7 +67,10 @@ public class DataPoint {
 		return this.predictedLabel;
 	}
 	public int getLabel(){
-		return actualLabel;
+		if(isLabeled){
+			return actualLabel;
+		}
+		return -1;
 	}
 	public boolean isLabeled(){
 		return isLabeled;
@@ -75,7 +104,7 @@ public class DataPoint {
 		}
 		//System.out.println("Value in getDistanceValue:" + value);
 		//System.out.println("Distance between " + this + " and " +other + " is " + Math.sqrt(value));
-		return value;
+		return Math.sqrt(value);
 	}
 	
 	//returns vector of distances between points in each dimension of two dataPoints.  
@@ -96,6 +125,11 @@ public class DataPoint {
 	
 	public String toString(){
 		String printer = "";
+		if(isLabeled()){
+			printer += Integer.toString(actualLabel) + " ";
+		}else{
+			printer += Integer.toString(-1) + " ";
+		}
 		for(DataType d: data){
 			if(d instanceof IntegerData){
 				printer += Integer.toString(((IntegerData)d).getRaw());

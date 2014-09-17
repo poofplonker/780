@@ -16,6 +16,7 @@ public class Cluster {
 	}
 	
 	public DataPoint recalculateCentroid(){
+		//System.out.println("--------------------------------");
 		DataPoint newCentroid;
 		int length = centroid.getVectorLength();
 		double[] doubleRaws = new double[length];
@@ -26,13 +27,14 @@ public class Cluster {
 		}
 		
 		for(DataPoint d: points){
+			//System.out.println(d);
 			for(int i =0; i < length; i++){
 				DataType dat = d.getData().get(i);
 				//System.out.println("Length of the point in recalculation is:" + d.getData().size());
 				if(dat instanceof DoubleData){
-					doubleRaws[i] += ((DoubleData)dat).getRaw();
+					doubleRaws[i] += ((DoubleData)dat).getNormalised();
 				}else if(dat instanceof IntegerData){
-					integerRaws[i] += ((IntegerData)dat).getRaw();
+					integerRaws[i] += ((IntegerData)dat).getNormalised();
 				}else{
 					//categorical data will be the majority category when recalcing centroid.
 					if(!categoricalCounts.get(i).containsKey(((CategoricalData)dat).getRaw())){
@@ -80,6 +82,8 @@ public class Cluster {
 		//this centroid has no actual class label. 
 		newCentroid = new DataPoint(newCentroidData,null,-1,false);
 		this.centroid = newCentroid;
+		//System.out.println("Recalculated as:" + this.centroid);
+		//System.out.println("--------------------------------");
 		return newCentroid;
 	}
 	

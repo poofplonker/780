@@ -7,3 +7,9 @@ to empty centroids
 Late August:
 
 - Change the model evaluation to be the real test data, not the data that the original model was trained on. 
+
+Corrections that made things worse:
+
+- Changing the gaussian distances from xi-xj to ||xi-xj||
+- Changing the centroid cluster recalculation to normalised values
+- Fixing the DC for unlabelled points (greatly improved convergence)

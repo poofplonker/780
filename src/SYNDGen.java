@@ -18,7 +18,7 @@ public class SYNDGen {
 		hpg.noisePercentageOption = new IntOption("noisePercentage",'n', "Percentage of noise to add to the data.", 5, 0, 100);
 		hpg.instanceRandomSeedOption = new IntOption("instanceRandomSeed", 'i',"Seed for random generation of instances.", 1);
 		hpg.numAttsOption = new IntOption("numAtts", 'a',"The number of attributes to generate.", 20, 0, Integer.MAX_VALUE);
-		hpg.numDriftAttsOption = new IntOption("", (char) 0, null, 4);
+		hpg.numDriftAttsOption = new IntOption("numDriftAtts", 'k', "The number of attributes with drift.", 4, 0, Integer.MAX_VALUE);
 		double change = twister.nextDouble()*.9 + .1;
 		hpg.magChangeOption = new FloatOption("magChange", 't',"Magnitude of the change for every example", change, 0.0, 1.0);
 		hpg.sigmaPercentageOption = new IntOption("sigmaPercentage",'s', "Percentage of probability that the direction of change is reversed.", 10, 0, 100);
@@ -27,7 +27,8 @@ public class SYNDGen {
 	
 	private void updateGenerator(){
 		double change = twister.nextDouble()*.9 + .1;
-		hpg.magChangeOption = new FloatOption("", (char) (0),null,change);
+		//System.out.println("Change:" + change);
+		hpg.magChangeOption = new FloatOption("magChange", 't',"Magnitude of the change for every example", change, 0.0, 1.0);
 	}
 	
 	public String[] getPoint(){

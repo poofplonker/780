@@ -3,6 +3,7 @@ import java.util.ArrayList;
 
 public class PseudoPoint implements Comparable{
 	private DataPoint centroid;
+	private boolean labelled;
 	private int weight;
 	private int label;
 	
@@ -10,8 +11,16 @@ public class PseudoPoint implements Comparable{
 		this.centroid = centroid;
 		this.weight = weight;
 		this.label = label;
+		if(label == -1){
+			labelled = false;
+		}else{
+			labelled = true;
+		}
 	}
 	
+	public boolean isLabelled(){
+		return labelled;
+	}
 	public int getWeight(){
 		return weight;
 	}

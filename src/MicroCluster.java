@@ -12,7 +12,7 @@ public class MicroCluster extends Cluster{
 		this.labelled = labelled;
 		totalPoints = 0;
 		microClusterLabel = label;
-		
+		//points.add(centroid);	//done at creation outside
 	}
 	
 	public int getLabel(){
