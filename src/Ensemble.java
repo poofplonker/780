@@ -79,7 +79,7 @@ public class Ensemble {
 		}
 		else{
 			refineEnsemble(m);
-			//accuracyCheck(m);
+			accuracyCheck(m);
 			updateEnsemble(m);
 		}
 	}
@@ -139,7 +139,18 @@ public class Ensemble {
 	}
 	
 	private void accuracyCheck(Model m){
+		int worstEnsemble = -1;
+		double minAccuracy = 1.5;
 		ArrayList<DataPoint> trainingData = m.getTrainingData();
+		for(int i = 0; i < ensemble.size(); i++){
+			Model currentMod = ensemble.get(i);
+			double rating = currentMod.classificationScore(trainingData);
+			if(rating < minAccuracy){
+				minAccuracy = rating;
+				worstEnsemble = i;
+			}
+			System.out.println(" Before pruning Model " + currentMod.getIndex() + "  has an accuracy of " + rating);
+		}
 		for(Model x: ensemble){
 			x.accuracyCheck(trainingData);
 		}

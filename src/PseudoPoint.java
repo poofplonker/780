@@ -6,8 +6,12 @@ public class PseudoPoint implements Comparable{
 	private boolean labelled;
 	private int weight;
 	private int label;
+	private int sameLabelNeighbour;
+	private int neighbourCount;
+	private double clusterRating;
+	private double accuracy;
 	
-	public PseudoPoint(DataPoint centroid, int weight, int label){
+	public PseudoPoint(DataPoint centroid, int weight, int label, double clusterRating){
 		this.centroid = centroid;
 		this.weight = weight;
 		this.label = label;
@@ -16,6 +20,34 @@ public class PseudoPoint implements Comparable{
 		}else{
 			labelled = true;
 		}
+		this.clusterRating = clusterRating;
+	}
+	
+	public double getClusterRating(){
+		return clusterRating;
+	}
+	
+	public void resetAccuracy(){
+		sameLabelNeighbour = 0;
+		neighbourCount = 0;
+	}
+	
+	private double calcAccuracy(){
+		return ((double)sameLabelNeighbour)/neighbourCount; 
+	}
+	
+	public double accurateNeighbour(){
+		sameLabelNeighbour++;
+		neighbourCount++;
+		return calcAccuracy();
+	}
+	
+	public double inAccurateNeighbour(){
+		neighbourCount++;
+		return calcAccuracy();
+	}
+	public double getAccuracy(){
+		return ((double)sameLabelNeighbour)/neighbourCount;
 	}
 	
 	public boolean isLabelled(){
@@ -47,6 +79,7 @@ public class PseudoPoint implements Comparable{
 	public String toString(){
 		String thing = "";
 		thing += " Label: " + label;
+		thing += " Originally Labelled: " + labelled;
 		thing += " Number of points: " + weight;
 		thing += " Centroid: " + centroid.toString();
 		return thing;

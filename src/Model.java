@@ -1,5 +1,6 @@
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedList;
 
@@ -19,6 +20,8 @@ public class Model {
 	private int totalPoints;
 	private int[] classData;
 	private int k;
+	private double removedPseudo;
+	private int numPseudo;
 	private int c;
 	
 	public Model(MersenneTwister twister, DataChunk chunk, int k, int c, int[] classData, int totalPoints, int index){
@@ -33,7 +36,8 @@ public class Model {
 		this.totalPoints = totalPoints;
 		clusterData(twister);
 		genMicroClusters();
-		createPseudoPoints();
+		double nPlof = Loop.NPlof(microClusters);
+		createPseudoPoints(nPlof);
 
 	}
 	
@@ -316,15 +320,28 @@ public class Model {
 		return minDistance;
 	}
 	
-	public void createPseudoPoints(){
+	public void createPseudoPoints(double nPlof){
+		double minRating = 1;
+		double maxRating = 0;
 		pseudoPoints = new ArrayList<PseudoPoint>();
 		for(int i = 0; i < microClusters.size();i++){
 			MicroCluster m = microClusters.get(i);
+
 			DataPoint centroid = m.recalculateCentroid();
 			int label = m.getLabel();
 			int weight = m.getDataPoints().size();
-			pseudoPoints.add(new PseudoPoint(centroid,weight,label));
+			double clusterRating = m.genLoopRating(nPlof);
+			if(clusterRating < minRating){
+				minRating = clusterRating;
+			}else if(clusterRating > maxRating){
+				maxRating = clusterRating;
+			}
+			System.out.println(m);
+			pseudoPoints.add(new PseudoPoint(centroid,weight,label, clusterRating));
 		}
+		System.out.println("Min Rating: " + minRating);
+		System.out.println("Max Rating: " + maxRating);
+		numPseudo = pseudoPoints.size();
 	}
 	
 	public void propagateLabels(double r, double stddev,ArrayList<Model> contig){
@@ -504,13 +521,13 @@ public class Model {
 		Matrix predictMatrix = new Matrix(1, c+1);
 		double normalisation = epsilon;
 		for(PseudoPoint p: pseudoPoints){
-			if(!p.isLabelled()){
+			if(p.getLabel() == -1){
 				continue;
 			}
 			Matrix pointMatrix = new Matrix(1,c+1);
 			double distance = d.getDistanceValue(p.getCentroid());
 			//System.out.println("Distance from point to pseudo: "+ distance );
-			double weight = Math.exp(-1*(distance/(2*stddev*stddev)))*p.getWeight();
+			double weight = Math.exp(-1*(distance/(2*stddev*stddev)))*p.getWeight()*p.getClusterRating();
 			//System.out.println("Associated weight:" + Math.exp(-1*(distance/(2*stddev*stddev))));
 
 			
@@ -558,47 +575,86 @@ public class Model {
 		return c;
 	}
 
+	
+	private boolean attachToNearest(ArrayList<LinkedList<DataPoint>> neighbours, DataPoint currentPoint){
+		PseudoPoint currentPseudo;
+		double minDistance = Double.MAX_VALUE;
+		int minIndex = -1;
+		for(int j  = 0; j < pseudoPoints.size(); j++){
+			if(currentPoint.getDistanceValue(pseudoPoints.get(j).getCentroid()) < minDistance){
+				minDistance = currentPoint.getDistanceValue(pseudoPoints.get(j).getCentroid());
+				minIndex = j;
+			}
+		}
+		if(minIndex != -1){
+			neighbours.get(minIndex).add(currentPoint);
+			currentPseudo = pseudoPoints.get(minIndex);
+			if(currentPoint.getLabel() == currentPseudo.getLabel()){
+				currentPseudo.accurateNeighbour();
+			}else{
+				currentPseudo.inAccurateNeighbour();
+			}
+		}else{
+			//because no minimal distance was chosen, there are no pseudopoints in the model, and it will classify
+			// with 0 accuracy
+			return false;
+		}
+		return true;
+	}
+	
+	private boolean filterPseudos(ArrayList<LinkedList<DataPoint>> neighbours){
+		PseudoPoint currentPseudo;
+		boolean restart = false;
+		double removalCounter = 0;
+		double boundary = 0.7;
+		Collections.sort(pseudoPoints, new Comparator<PseudoPoint>(){
+		    public int compare(PseudoPoint s1, PseudoPoint s2) {
+		        if(s1.getAccuracy() < s2.getAccuracy()){
+		        	return -1;
+		        }else if(s1.getAccuracy() == s2.getAccuracy()){
+		        	return 0;
+		        }
+		        return 1;
+		    }
+		});
+		int startingPseudo = pseudoPoints.size();
+		for(int i = 0; i < pseudoPoints.size(); i++){
+			currentPseudo = pseudoPoints.get(i);
+			//System.out.println("Removal chcek: " + removedPseudo/numPseudo);
+			if(currentPseudo.getAccuracy() < boundary && removalCounter/startingPseudo < 0.5 && removedPseudo/numPseudo < 0.8){
+				pseudoPoints.remove(i);
+				LinkedList<DataPoint> temp = neighbours.get(i);
+				neighbours.remove(i);
+//				for(DataPoint d: temp){
+//					attachToNearest(neighbours,d);
+//				}
+				i--;
+				removedPseudo++;
+				removalCounter++;
+			}
+			
+		}
+		System.out.println("Removed "+ removalCounter + " pseudoPoints from model " + getIndex());
+		return true;
+	}
+	
 	public void accuracyCheck(ArrayList<DataPoint> trainingData2) {
+		System.out.println("Model " + getIndex() + " had " + pseudoPoints.size() + " pseudoPoints");
 		ArrayList<LinkedList<DataPoint>> neighbours = new ArrayList<LinkedList<DataPoint>>(pseudoPoints.size());
 		for(int i = 0; i < pseudoPoints.size(); i++){
 			neighbours.add(new LinkedList<DataPoint>());
+			pseudoPoints.get(i).resetAccuracy();
 		}
-		
+		PseudoPoint currentPseudo;
 		//for every datapoint in the training set, find the pseudopoint which is closest to it. 
 		for(int i = 0; i < trainingData2.size(); i++){
 			DataPoint currentPoint = trainingData2.get(i);
-			double minDistance = Double.MAX_VALUE;
-			int minIndex = -1;
-			for(int j  = 0; j < pseudoPoints.size(); j++){
-				if(currentPoint.getDistanceValue(pseudoPoints.get(j).getCentroid()) < minDistance){
-					minDistance = currentPoint.getDistanceValue(pseudoPoints.get(j).getCentroid());
-					minIndex = j;
-				}
-			}
-			if(minIndex != -1){
-				neighbours.get(minIndex).add(currentPoint);
-			}else{
-				//because no minimal distance was chosen, there are no pseudopoints in the model, and it will classify
-				// with 0 accuracy
-				return;
-			}
+			attachToNearest(neighbours,currentPoint);
 		}
-		double boundary = 0.7;
-		for(int i = 0; i < neighbours.size(); i++){
-			double correctCounter = 0;
-			for(int j = 0; j < neighbours.get(i).size(); j++){
-				if(neighbours.get(i).get(j).getLabel() == pseudoPoints.get(i).getLabel()){
-					correctCounter++;
-				}
-			}
-			if(correctCounter/neighbours.get(i).size() < boundary){
-				System.out.println("Removing " + pseudoPoints.get(i) + " in model "+ getIndex());
-				pseudoPoints.remove(i);
-				neighbours.remove(i);
-				i--;
-				
-			}
-		}
+		int removalCounter = 0;
+		filterPseudos(neighbours);
+
+		System.out.println("Model " + getIndex() + " now has " + pseudoPoints.size() + " pseudoPoints");
 		
 	}
 	

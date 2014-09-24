@@ -17,5 +17,6 @@
 	<classpathentry kind="lib" path="/Users/cinnamonscudworth/Documents/789/jfreejars/Jama-1.0.3.jar"/>
 	<classpathentry kind="lib" path="/Users/cinnamonscudworth/Documents/789/jfreejars/moa.jar"/>
 	<classpathentry kind="lib" path="/Users/cinnamonscudworth/Documents/789/jfreejars/sizeofag.jar"/>
+	<classpathentry kind="lib" path="/Users/cinnamonscudworth/Documents/789/jfreejars/commons-math3-3.3.jar"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

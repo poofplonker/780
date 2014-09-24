@@ -18,7 +18,7 @@ public class Main {
 		boolean synthetic = true;
 		int l = 6;
 		int k = 50;
-		int testNumber = 20;
+		int testNumber = 10;
 		double percentUnlabelled = 0.9;
 		writer.println("For each test: ");
 		LinkedList<Double> results = new LinkedList<Double>();
@@ -33,13 +33,13 @@ public class Main {
 				results.set(j, results.get(j)+currentResult.get(j));
 			}
 		}
-		for(int j = 0; j < testNumber; j++){
+		for(int j = 0; j < results.size(); j++){
 			results.set(j,results.get(j)/testNumber);
 		}
 		writer.println("Final Result:");
 		writePercents(results, writer, -1);
 		writer.close();
-		Graphing.exportGraph(results, "output/synD.png");
+		Graphing.exportGraph(results, "output/synDClusterRatingOnPrediction.png");
 	}
 	
 	public static void writePercents(LinkedList<Double> list, PrintWriter p, int test){
@@ -80,7 +80,7 @@ public class Main {
 		}
 		DataProcessor d = new DataProcessor(vectorLength, percentUnlabelled,br,synthetic,twist);
 		int iterations = 0;
-		while(d.moreInput()){
+		while(iterations < 250){
 			DataChunk chunk = new DataChunk(chunkSize, d,twist, percentUnlabelled);
 			ens.countNewDataPoints(chunk.getTrainingData());
 			vectorLength = chunk.getDataPointArray().get(0).getData().size();

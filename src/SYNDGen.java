@@ -27,6 +27,7 @@ public class SYNDGen {
 	
 	private void updateGenerator(){
 		double change = twister.nextDouble()*.9 + .1;
+		//System.out.println(hpg.estimatedRemainingInstances() + " estimated remaining instances");
 		//System.out.println("Change:" + change);
 		hpg.magChangeOption = new FloatOption("magChange", 't',"Magnitude of the change for every example", change, 0.0, 1.0);
 	}

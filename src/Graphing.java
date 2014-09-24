@@ -53,7 +53,7 @@ public class Graphing {
         xyPlot.setDomainCrosshairVisible(true);
         xyPlot.setRangeCrosshairVisible(true);
         NumberAxis range = (NumberAxis) xyPlot.getRangeAxis();
-        range.setRange(0.8, 1.0);
+        range.setRange(0.5, 1.0);
         return chart;
 	}
 }
