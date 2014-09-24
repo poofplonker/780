@@ -149,7 +149,7 @@ public class Ensemble {
 				minAccuracy = rating;
 				worstEnsemble = i;
 			}
-			System.out.println(" Before pruning Model " + currentMod.getIndex() + "  has an accuracy of " + rating);
+			//System.out.println(" Before pruning Model " + currentMod.getIndex() + "  has an accuracy of " + rating);
 		}
 		for(Model x: ensemble){
 			x.accuracyCheck(trainingData);

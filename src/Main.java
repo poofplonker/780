@@ -11,35 +11,37 @@ import cern.jet.random.engine.MersenneTwister;
 
 
 public class Main {
-
+	
+	private static final int CHUNKSIZE = 1000;
+	private static final int L = 6;
+	private static final int K = 50;
+	private static final int TESTNUMBER = 10;
+	private static final double PERCENTUNLABELLED = 0.9;
+	private static final String OUTPUTGRAPHNAME = "output/synDClusterRatingOnPrediction.png";
+	private static final boolean SYNTHETIC = true;
+	
 	public static void main(String[] args) throws IOException {
 		PrintWriter writer = new PrintWriter("output/KDDtest1.txt", "UTF-8");
-		int chunkSize = 1000;
-		boolean synthetic = true;
-		int l = 6;
-		int k = 50;
-		int testNumber = 10;
-		double percentUnlabelled = 0.9;
 		writer.println("For each test: ");
 		LinkedList<Double> results = new LinkedList<Double>();
-		results = ReaSC(l, k, percentUnlabelled, chunkSize, synthetic);
+		results = ReaSC(L, K, PERCENTUNLABELLED, CHUNKSIZE, SYNTHETIC);
 		writePercents(results, writer, 0);
 		LinkedList<Double> currentResult;
-		for(int i = 1; i < testNumber; i++){
+		for(int i = 1; i < TESTNUMBER; i++){
 			System.out.println("Test " + i + " complete");
-			currentResult = ReaSC(l,k,percentUnlabelled, chunkSize, synthetic);
+			currentResult = ReaSC(L, K, PERCENTUNLABELLED, CHUNKSIZE, SYNTHETIC);
 			writePercents(currentResult, writer, i);
 			for(int j = 0; j < currentResult.size(); j++){
 				results.set(j, results.get(j)+currentResult.get(j));
 			}
 		}
 		for(int j = 0; j < results.size(); j++){
-			results.set(j,results.get(j)/testNumber);
+			results.set(j,results.get(j)/TESTNUMBER);
 		}
 		writer.println("Final Result:");
 		writePercents(results, writer, -1);
 		writer.close();
-		Graphing.exportGraph(results, "output/synDClusterRatingOnPrediction.png");
+		Graphing.exportGraph(results, OUTPUTGRAPHNAME);
 	}
 	
 	public static void writePercents(LinkedList<Double> list, PrintWriter p, int test){
@@ -89,7 +91,7 @@ public class Main {
 			}
 			c = d.getSeenClasses();
 			ens.expandClasses(c);
-			if(iterations > l){
+			if(iterations > 3){
 				ens.predictChunkForClustering(chunk);
 			}
 			if(iterations > l+3){

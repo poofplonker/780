@@ -93,7 +93,7 @@ public class Model {
 		}
 		for(MicroCluster m: microClusters){
 			m.recalculateCentroid();
-			//System.out.println(m);
+			System.out.println(m);
 		}
 		System.out.println("Number of micro-clusters: " + microClusters.size());
 	}
@@ -336,7 +336,7 @@ public class Model {
 			}else if(clusterRating > maxRating){
 				maxRating = clusterRating;
 			}
-			System.out.println(m);
+			//System.out.println(m);
 			pseudoPoints.add(new PseudoPoint(centroid,weight,label, clusterRating));
 		}
 		System.out.println("Min Rating: " + minRating);
@@ -634,12 +634,12 @@ public class Model {
 			}
 			
 		}
-		System.out.println("Removed "+ removalCounter + " pseudoPoints from model " + getIndex());
+		//System.out.println("Removed "+ removalCounter + " pseudoPoints from model " + getIndex());
 		return true;
 	}
 	
 	public void accuracyCheck(ArrayList<DataPoint> trainingData2) {
-		System.out.println("Model " + getIndex() + " had " + pseudoPoints.size() + " pseudoPoints");
+		//System.out.println("Model " + getIndex() + " had " + pseudoPoints.size() + " pseudoPoints");
 		ArrayList<LinkedList<DataPoint>> neighbours = new ArrayList<LinkedList<DataPoint>>(pseudoPoints.size());
 		for(int i = 0; i < pseudoPoints.size(); i++){
 			neighbours.add(new LinkedList<DataPoint>());
@@ -654,7 +654,7 @@ public class Model {
 		int removalCounter = 0;
 		filterPseudos(neighbours);
 
-		System.out.println("Model " + getIndex() + " now has " + pseudoPoints.size() + " pseudoPoints");
+		//System.out.println("Model " + getIndex() + " now has " + pseudoPoints.size() + " pseudoPoints");
 		
 	}
 	
