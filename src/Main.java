@@ -17,8 +17,12 @@ public class Main {
 	private static final int K = 50;
 	private static final int TESTNUMBER = 10;
 	private static final double PERCENTUNLABELLED = 0.9;
-	private static final String OUTPUTGRAPHNAME = "output/synDClusterRatingOnPrediction.png";
-	private static final boolean SYNTHETIC = true;
+	private static final String OUTPUTGRAPHNAME = "output/covDataNoWeight.png";
+	private static final boolean SYNTHETIC = false;
+	private static final int SYNTHETICLENGTH = 21;
+	private static final String FILE1 = "input/kddcup.data_10_percent_corrected";
+	private static final String FILE2 = "input/covtype.data";
+
 	
 	public static void main(String[] args) throws IOException {
 		PrintWriter writer = new PrintWriter("output/KDDtest1.txt", "UTF-8");
@@ -57,12 +61,12 @@ public class Main {
 	public static LinkedList<Double> ReaSC(int l, int k, double percentUnlabelled, int chunSize, boolean synthetic) throws IOException{
 		BufferedReader br;
 		if(!synthetic){
-			br = new BufferedReader(new FileReader("input/kddcup.data_10_percent_corrected"));
+			br = new BufferedReader(new FileReader(FILE2));
 		}else{
 			br = null;
 		}
 		MersenneTwister twist = new MersenneTwister(new java.util.Date());
-		int c = 0;
+		int c = 7;
 		Ensemble ens = new Ensemble(l,k,c);
 		int vectorLength = 0;	//length of datavector
 		int chunkSize = chunSize;	//chunksize
@@ -78,7 +82,7 @@ public class Main {
 				e.printStackTrace();
 			}
 		}else{
-			vectorLength = 21;
+			vectorLength = SYNTHETICLENGTH;
 		}
 		DataProcessor d = new DataProcessor(vectorLength, percentUnlabelled,br,synthetic,twist);
 		int iterations = 0;
@@ -90,6 +94,8 @@ public class Main {
 				return percentArray;
 			}
 			c = d.getSeenClasses();
+			c++;
+			System.out.println("Seen classes: " + c);
 			ens.expandClasses(c);
 			if(iterations > 3){
 				ens.predictChunkForClustering(chunk);

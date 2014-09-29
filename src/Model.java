@@ -38,7 +38,7 @@ public class Model {
 		genMicroClusters();
 		double nPlof = Loop.NPlof(microClusters);
 		createPseudoPoints(nPlof);
-
+		System.out.println("Model gen done");
 	}
 	
 	public int getIndex(){
@@ -93,7 +93,7 @@ public class Model {
 		}
 		for(MicroCluster m: microClusters){
 			m.recalculateCentroid();
-			System.out.println(m);
+			//System.out.println(m);
 		}
 		System.out.println("Number of micro-clusters: " + microClusters.size());
 	}
@@ -456,7 +456,7 @@ public class Model {
 		Matrix prevT = tZeroMat;
 		boolean converge = false;
 		int iterations = 0;
-		double epsilon = 0.00001;
+		double epsilon = 0.001;
 		while(!converge){
 			prevT = currentT;
 			currentT = p.times(prevT).times(alpha).plus(tZeroMat.times(1-alpha));
@@ -527,7 +527,7 @@ public class Model {
 			Matrix pointMatrix = new Matrix(1,c+1);
 			double distance = d.getDistanceValue(p.getCentroid());
 			//System.out.println("Distance from point to pseudo: "+ distance );
-			double weight = Math.exp(-1*(distance/(2*stddev*stddev)))*p.getWeight()*p.getClusterRating();
+			double weight = Math.exp(-1*(distance/(2*stddev*stddev)))*p.getWeight()/**p.getClusterRating()*/;
 			//System.out.println("Associated weight:" + Math.exp(-1*(distance/(2*stddev*stddev))));
 
 			

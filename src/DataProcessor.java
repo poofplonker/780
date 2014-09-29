@@ -16,6 +16,7 @@ public class DataProcessor {
 	private int recordsProcessed = 0;
 	private int seenClasses = 0;
 	private HashMap<String, Integer> classMap;
+	private HashMap<Integer, Integer> intClassMap;
 	private double percentUnlabelled;
 	private boolean synthetic;
 	private SYNDGen syndgen;
@@ -26,6 +27,7 @@ public class DataProcessor {
 		this.percentUnlabelled = percentUnlabelled;
 		this.br = br;
 		this.classMap = new HashMap<String,Integer>();
+		this.intClassMap = new HashMap<Integer, Integer>();
 		this.synthetic = synthetic;
 		this.twister = twister;
 		if(synthetic){
@@ -80,10 +82,18 @@ public class DataProcessor {
 				classMap.put(((CategoricalData) classLabel).getRaw(),1);
 				seenClasses++;
 			}
+		}else if(training && classLabel instanceof IntegerData){
+			//System.out.println("Label of this point is: " + ((IntegerData) classLabel).getRaw());
+			if(!intClassMap.containsKey(((IntegerData) classLabel).getRaw())){
+				intClassMap.put(((IntegerData) classLabel).getRaw(),1);
+				seenClasses++;
+			}
 		}
 		//simulation of unlabelled data
-		if(!synthetic){
+		if(!synthetic && classLabel instanceof CategoricalData){
 			d = new DataPoint(dataValues, classLabel,((CategoricalData)classLabel).numerValue(),false);
+		}else if(!synthetic && classLabel instanceof IntegerData){
+			d = new DataPoint(dataValues, classLabel,((IntegerData)classLabel).getRaw(),false);
 		}else{
 			d = new DataPoint(dataValues, classLabel,(int) Math.round(Double.parseDouble(values[values.length-1])),false);
 		}
@@ -110,7 +120,7 @@ public class DataProcessor {
 	public DataType processField(String value, int i){
 		if (value.matches("-?\\d+")){
 			int result = Integer.parseInt(value);
-			DoubleData data =  new DoubleData(result,i,vectorLength);
+			IntegerData data =  new IntegerData(result,i,vectorLength);
 			
 			if(result > data.getMax()){
 				data.setMax(result);

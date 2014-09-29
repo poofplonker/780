@@ -80,6 +80,7 @@ public class DataChunk {
 	}
 	
 	public int[] getClassCounter(int c){
+		System.out.println("Classes: " + c);
 		int[] classCounter = new int[c];
 		for(DataPoint d : dataPointArray){
 			if(d.isLabeled()){
