@@ -23,8 +23,9 @@ public class Model {
 	private double removedPseudo;
 	private int numPseudo;
 	private int c;
+	private boolean ratingClusters; 
 	
-	public Model(MersenneTwister twister, DataChunk chunk, int k, int c, int[] classData, int totalPoints, int index){
+	public Model(MersenneTwister twister, DataChunk chunk, int k, int c, int[] classData, int totalPoints, int index, boolean ratingClusters){
 		this.dataChunk = chunk;
 		this.chunkSize = chunk.getChunkSize();
 		this.seenClass = chunk.seenClass(c);
@@ -34,6 +35,7 @@ public class Model {
 		this.index = index;
 		this.classData = classData;
 		this.totalPoints = totalPoints;
+		this.ratingClusters = ratingClusters;
 		clusterData(twister);
 		genMicroClusters();
 		double nPlof = Loop.NPlof(microClusters);
@@ -387,10 +389,10 @@ public class Model {
 				}
 				PseudoPoint ith = workingList.get(i);
 				PseudoPoint jth = workingList.get(j);
-				double distance = ith.getCentroid().getDistanceValue(jth.getCentroid());
-
-				//System.out.println("Distance for  " + i + " "+ j + ": "+ distance );
-				weights[i][j] = Math.exp(-1*(distance/(2*stddev*stddev)))*jth.getWeight();
+				weights[i][j] = weightFunction(ith.getCentroid(), jth, stddev);
+				if(ratingClusters){
+					weights[i][j] *= jth.getClusterRating();
+				}
 				//sSystem.out.println("Associated weight:" + Math.exp(-1*(distance/(2*stddev*stddev))));
 				counter += weights[i][j];
 				colCounter[j] += weights[i][j];
@@ -516,6 +518,11 @@ public class Model {
 		System.out.println("Number of pseudoPoints generated:" + vectorLength);
 	}
 	
+	private double weightFunction(DataPoint d, PseudoPoint p, double stddev){
+		double distance = d.getDistanceValue(p.getCentroid());
+		return  Math.exp(-1*(distance/(2*stddev*stddev)))*p.getWeight();
+	}
+	
 	public Matrix predictLabel(DataPoint d, double stddev){
 		double epsilon = 1e-10;
 		Matrix predictMatrix = new Matrix(1, c+1);
@@ -525,12 +532,10 @@ public class Model {
 				continue;
 			}
 			Matrix pointMatrix = new Matrix(1,c+1);
-			double distance = d.getDistanceValue(p.getCentroid());
-			//System.out.println("Distance from point to pseudo: "+ distance );
-			double weight = Math.exp(-1*(distance/(2*stddev*stddev)))*p.getWeight()/**p.getClusterRating()*/;
-			//System.out.println("Associated weight:" + Math.exp(-1*(distance/(2*stddev*stddev))));
-
-			
+			double weight = weightFunction(d,p,stddev);
+			if(ratingClusters){
+				weight *= p.getClusterRating();
+			}
 			pointMatrix.set(0, p.getLabel()+1, weight);
 
 			predictMatrix.plusEquals(pointMatrix);

@@ -290,8 +290,6 @@ public class Ensemble {
 					oneCounter++;
 				}else if(prediction == 0){
 					zeroCounter++;
-				}else{
-					System.out.println(prediction + " was predicted");
 				}
 				
 //			}else{

@@ -15,10 +15,11 @@ public class Main {
 	private static final int CHUNKSIZE = 1000;
 	private static final int L = 6;
 	private static final int K = 50;
-	private static final int TESTNUMBER = 10;
+	private static final int TESTNUMBER = 1;
 	private static final double PERCENTUNLABELLED = 0.9;
 	private static final String OUTPUTGRAPHNAME = "output/covDataNoWeight.png";
-	private static final boolean SYNTHETIC = false;
+	private static final String GRAPHTITLE = "SynD Dataset";
+	private static final boolean SYNTHETIC = true;
 	private static final int SYNTHETICLENGTH = 21;
 	private static final String FILE1 = "input/kddcup.data_10_percent_corrected";
 	private static final String FILE2 = "input/covtype.data";
@@ -27,25 +28,32 @@ public class Main {
 	public static void main(String[] args) throws IOException {
 		PrintWriter writer = new PrintWriter("output/KDDtest1.txt", "UTF-8");
 		writer.println("For each test: ");
+		LinkedList<Double> results1 = singleTest(false);
+		LinkedList<Double> results2 = singleTest(true);
+		
+		writer.println("Final Result:");
+		writePercents(results1, writer, -1);
+		writer.close();
+		Graphing.exportGraph(results1, results2, GRAPHTITLE, OUTPUTGRAPHNAME);
+	}
+	
+	private static LinkedList<Double> singleTest(boolean ratingCluster) throws IOException{
 		LinkedList<Double> results = new LinkedList<Double>();
-		results = ReaSC(L, K, PERCENTUNLABELLED, CHUNKSIZE, SYNTHETIC);
-		writePercents(results, writer, 0);
+		results = ReaSC(L, K, PERCENTUNLABELLED, CHUNKSIZE, SYNTHETIC, ratingCluster);
 		LinkedList<Double> currentResult;
+		
 		for(int i = 1; i < TESTNUMBER; i++){
 			System.out.println("Test " + i + " complete");
-			currentResult = ReaSC(L, K, PERCENTUNLABELLED, CHUNKSIZE, SYNTHETIC);
-			writePercents(currentResult, writer, i);
+			currentResult = ReaSC(L, K, PERCENTUNLABELLED, CHUNKSIZE, SYNTHETIC, ratingCluster);
 			for(int j = 0; j < currentResult.size(); j++){
 				results.set(j, results.get(j)+currentResult.get(j));
 			}
 		}
+		
 		for(int j = 0; j < results.size(); j++){
 			results.set(j,results.get(j)/TESTNUMBER);
 		}
-		writer.println("Final Result:");
-		writePercents(results, writer, -1);
-		writer.close();
-		Graphing.exportGraph(results, OUTPUTGRAPHNAME);
+		return results;
 	}
 	
 	public static void writePercents(LinkedList<Double> list, PrintWriter p, int test){
@@ -58,7 +66,7 @@ public class Main {
 		p.println();
 	}
 	
-	public static LinkedList<Double> ReaSC(int l, int k, double percentUnlabelled, int chunSize, boolean synthetic) throws IOException{
+	public static LinkedList<Double> ReaSC(int l, int k, double percentUnlabelled, int chunSize, boolean synthetic, boolean ratingCluster) throws IOException{
 		BufferedReader br;
 		if(!synthetic){
 			br = new BufferedReader(new FileReader(FILE2));
@@ -94,7 +102,6 @@ public class Main {
 				return percentArray;
 			}
 			c = d.getSeenClasses();
-			c++;
 			System.out.println("Seen classes: " + c);
 			ens.expandClasses(c);
 			if(iterations > 3){
@@ -106,7 +113,7 @@ public class Main {
 			//System.out.println("Length now: " + vectorLength);
 
 			//System.out.println("Number of classes: " + c);
-			Model m = new Model(twist, chunk,k, c, ens.getClassCounter(), ens.getTotalPoints(), iterations);
+			Model m = new Model(twist, chunk,k, c, ens.getClassCounter(), ens.getTotalPoints(), iterations, ratingCluster);
 			ArrayList<PseudoPoint> pp = m.getPseudo();
 			int oneCounter = 0;
 			int zeroCounter = 0;
@@ -137,7 +144,9 @@ public class Main {
 			iterations++;
 			System.out.println("After " + iterations +" iterations, the accuracy is:" + ens.getAccuracy());
 			System.out.println();
-			percentArray.add(ens.getAccuracy());
+			if(iterations > l+3){
+				percentArray.add(ens.getAccuracy());
+			}
 			
 		}
 		return percentArray;
