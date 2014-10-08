@@ -13,20 +13,24 @@ import org.jfree.chart.JFreeChart;
 import org.jfree.chart.axis.NumberAxis;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.renderer.xy.XYErrorRenderer;
+import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.data.xy.XYDataset;
+import org.jfree.data.xy.XYIntervalSeries;
+import org.jfree.data.xy.XYIntervalSeriesCollection;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
 
 
 public class Graphing {
 	
-	public static void exportGraph(LinkedList<Double> results1, LinkedList<Double> results2, String title,String filename) throws FileNotFoundException, IOException{
-		XYDataset data = genData(results1, results2);
+	public static void exportGraph(LinkedList<Double> results1, LinkedList<Double> results2,LinkedList<Double> error1, LinkedList<Double> error2, int errorInterval, String title,String filename) throws FileNotFoundException, IOException{
+		XYDataset data = genData(results1, results2, error1, error2, errorInterval);
 		double minValue = getMinValue(results1, results2);
 		double maxValue = getMaxValue(results1, results2);
 		JFreeChart chart = createChart(data, title, minValue,maxValue);
 		BufferedImage chartImage = chart.createBufferedImage( 300, 300, null); 
-		ImageIO.write( chartImage, "png", new FileOutputStream(filename));
+		ImageIO.write( chartImage, "png", new FileOutputStream(filename +"Line.png"));
 	}
 	
 	private static double getMinValue(LinkedList<Double> results1, LinkedList<Double> results2){
@@ -58,38 +62,50 @@ public class Graphing {
 		}
 		return (max+0.05 > 1) ? 1: max+0.05; 
 	}
-	private static XYDataset genData(LinkedList<Double> results1, LinkedList<Double> results2){
-		XYSeries bench = new XYSeries("Without Cluster Rating");
+	private static XYDataset genData(LinkedList<Double> results1, LinkedList<Double> results2, LinkedList<Double> error1, LinkedList<Double> error2,int errorInterval){
+		XYIntervalSeries bench = new XYIntervalSeries("Without Cluster Rating");
+		int counter = 0;
 		for(int i = 0; i < results1.size(); i++){
-			bench.add(i,results1.get(i));
+			if((i % errorInterval)!= 0){
+				bench.add(i, i, i,results1.get(i),results1.get(i),results1.get(i));
+			}else{
+				bench.add(i,i,i,results1.get(i), results1.get(i)-error1.get(counter), results1.get(i)+error1.get(counter));
+				counter++;
+			}
 		}
-		XYSeries bench2 = new XYSeries("With Cluster Rating");
+		XYIntervalSeries bench2 = new XYIntervalSeries("With Cluster Rating");
+		counter = 0;
 		for(int i = 0; i < results2.size(); i++){
-			bench2.add(i,results2.get(i));
+			if(i%(errorInterval+1) != 0){
+				bench2.add(i, i, i,results2.get(i),results2.get(i),results2.get(i));
+			}
+			else{
+				bench2.add(i,i,i,results2.get(i), results2.get(i)-error2.get(counter), results2.get(i)+error2.get(counter));
+				counter++;
+			}
 		}
-		XYSeriesCollection d = new XYSeriesCollection();
+		XYIntervalSeriesCollection d = new XYIntervalSeriesCollection();
 		d.addSeries(bench);
 		d.addSeries(bench2);
 		return d;
 	}
 	
 	private static JFreeChart createChart(XYDataset data, String title,double minValue, double maxValue){
-		final JFreeChart chart = ChartFactory.createXYLineChart(
-	            title,      // chart title
-	            "Number of chunks processed",                      // x axis label
-	            "Cumulative accuracy of predictions",                      // y axis label
-	            data,                  // data
-	            PlotOrientation.VERTICAL,
-	            true,                     // include legend
-	            true,                     // tooltips
-	            false                     // urls
-	        );
+        NumberAxis range = new NumberAxis("Number of chunks processed");
+        NumberAxis domain = new NumberAxis("Cumulative accuracy of predictions");
+        domain.setRange(minValue, maxValue);
+        XYErrorRenderer error = new XYErrorRenderer();
+        XYPlot xyPlot = new XYPlot(data,range,domain,error);
+        final XYLineAndShapeRenderer renderer = new XYLineAndShapeRenderer();
+        renderer.setSeriesLinesVisible(1, true);
+        renderer.setSeriesLinesVisible(1,true);
+        renderer.setSeriesShapesVisible(1,false);
+        renderer.setSeriesShapesVisible(1,false);
+        xyPlot.setRenderer(renderer);
+		final JFreeChart chart = new JFreeChart(title,xyPlot);
 		chart.setBackgroundPaint(Color.white);
-        XYPlot xyPlot = (XYPlot) chart.getPlot();
+        
         xyPlot.setDomainCrosshairVisible(true);
-        xyPlot.setRangeCrosshairVisible(true);
-        NumberAxis range = (NumberAxis) xyPlot.getRangeAxis();
-        range.setRange(minValue, maxValue);
         return chart;
 	}
 }
