@@ -76,7 +76,7 @@ public class Graphing {
 		XYIntervalSeries bench2 = new XYIntervalSeries("With Cluster Rating");
 		counter = 0;
 		for(int i = 0; i < results2.size(); i++){
-			if(i%(errorInterval+1) != 0){
+			if((i%errorInterval) != 0){
 				bench2.add(i, i, i,results2.get(i),results2.get(i),results2.get(i));
 			}
 			else{
@@ -95,13 +95,12 @@ public class Graphing {
         NumberAxis domain = new NumberAxis("Cumulative accuracy of predictions");
         domain.setRange(minValue, maxValue);
         XYErrorRenderer error = new XYErrorRenderer();
+        error.setSeriesShapesVisible(0,false);
+        error.setSeriesShapesVisible(1,false);
+        error.setSeriesLinesVisible(0,true);
+        error.setSeriesLinesVisible(1,true);
+        
         XYPlot xyPlot = new XYPlot(data,range,domain,error);
-        final XYLineAndShapeRenderer renderer = new XYLineAndShapeRenderer();
-        renderer.setSeriesLinesVisible(1, true);
-        renderer.setSeriesLinesVisible(1,true);
-        renderer.setSeriesShapesVisible(1,false);
-        renderer.setSeriesShapesVisible(1,false);
-        xyPlot.setRenderer(renderer);
 		final JFreeChart chart = new JFreeChart(title,xyPlot);
 		chart.setBackgroundPaint(Color.white);
         
