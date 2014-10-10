@@ -4,17 +4,25 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 
 import javax.imageio.ImageIO;
 
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.JFreeChart;
+import org.jfree.chart.axis.CategoryAxis;
 import org.jfree.chart.axis.NumberAxis;
+import org.jfree.chart.labels.BoxAndWhiskerToolTipGenerator;
+import org.jfree.chart.plot.CategoryPlot;
 import org.jfree.chart.plot.PlotOrientation;
 import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.renderer.category.BoxAndWhiskerRenderer;
 import org.jfree.chart.renderer.xy.XYErrorRenderer;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
+import org.jfree.data.statistics.BoxAndWhiskerCategoryDataset;
+import org.jfree.data.statistics.DefaultBoxAndWhiskerCategoryDataset;
 import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYIntervalSeries;
 import org.jfree.data.xy.XYIntervalSeriesCollection;
@@ -24,13 +32,21 @@ import org.jfree.data.xy.XYSeriesCollection;
 
 public class Graphing {
 	
-	public static void exportGraph(LinkedList<Double> results1, LinkedList<Double> results2,LinkedList<Double> error1, LinkedList<Double> error2, int errorInterval, String title,String filename) throws FileNotFoundException, IOException{
+	public static void exportGraph(LinkedList<Double> results1, LinkedList<Double> results2,LinkedList<Double> error1, LinkedList<Double> error2, ArrayList<Double> loop1, ArrayList<Double> loop2, int errorInterval, String title,String filename) throws FileNotFoundException, IOException{
 		XYDataset data = genData(results1, results2, error1, error2, errorInterval);
 		double minValue = getMinValue(results1, results2);
 		double maxValue = getMaxValue(results1, results2);
-		JFreeChart chart = createChart(data, title, minValue,maxValue);
+		maxValue += getMaxValue(error1,error2);
+		minValue -= getMaxValue(error1, error2);
+		JFreeChart chart = createLineChart(data, title, minValue,maxValue);
 		BufferedImage chartImage = chart.createBufferedImage( 300, 300, null); 
 		ImageIO.write( chartImage, "png", new FileOutputStream(filename +"Line.png"));
+		
+		BoxAndWhiskerCategoryDataset dataset2 = genBoxData(loop1, loop2, title);
+		chart = createBoxChart(dataset2, title);
+		chartImage = chart.createBufferedImage( 300, 300, null); 
+		ImageIO.write( chartImage, "png", new FileOutputStream(filename +"Box.png"));
+		
 	}
 	
 	private static double getMinValue(LinkedList<Double> results1, LinkedList<Double> results2){
@@ -76,7 +92,7 @@ public class Graphing {
 		XYIntervalSeries bench2 = new XYIntervalSeries("With Cluster Rating");
 		counter = 0;
 		for(int i = 0; i < results2.size(); i++){
-			if((i%errorInterval) != 0){
+			if((i%errorInterval) != errorInterval/2){
 				bench2.add(i, i, i,results2.get(i),results2.get(i),results2.get(i));
 			}
 			else{
@@ -90,7 +106,14 @@ public class Graphing {
 		return d;
 	}
 	
-	private static JFreeChart createChart(XYDataset data, String title,double minValue, double maxValue){
+	private static BoxAndWhiskerCategoryDataset genBoxData(ArrayList<Double> loop1, ArrayList<Double> loop2, String title){
+		final DefaultBoxAndWhiskerCategoryDataset dataset 
+        = new DefaultBoxAndWhiskerCategoryDataset();
+		dataset.add(loop1, "Cluster quality without evalution of clusters on LoOP score", title);
+		dataset.add(loop2, "Cluster quality with evalution of clusters on LoOP score", title);
+		return dataset;
+	}
+	private static JFreeChart createLineChart(XYDataset data, String title,double minValue, double maxValue){
         NumberAxis range = new NumberAxis("Number of chunks processed");
         NumberAxis domain = new NumberAxis("Cumulative accuracy of predictions");
         domain.setRange(minValue, maxValue);
@@ -105,6 +128,22 @@ public class Graphing {
 		chart.setBackgroundPaint(Color.white);
         
         xyPlot.setDomainCrosshairVisible(true);
+        return chart;
+	}
+	
+	private static JFreeChart createBoxChart(BoxAndWhiskerCategoryDataset dataset, String title){
+		final CategoryAxis xAxis = new CategoryAxis("");
+        final NumberAxis yAxis = new NumberAxis("LoOP cluster quality");
+        yAxis.setAutoRangeIncludesZero(true);
+        final BoxAndWhiskerRenderer renderer = new BoxAndWhiskerRenderer();
+        renderer.setFillBox(false);
+        renderer.setMeanVisible(false);
+        final CategoryPlot plot = new CategoryPlot(dataset, xAxis, yAxis, renderer);
+
+        final JFreeChart chart = new JFreeChart(
+            title,
+            plot
+        );
         return chart;
 	}
 }

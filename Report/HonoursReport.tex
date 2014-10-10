@@ -2,6 +2,7 @@
 
 \usepackage{amsmath}
 \usepackage{mathtools}
+\usepackage{ mathrsfs }
 \usepackage{parskip}
 \usepackage{graphicx}
 \usepackage{hyperref}
@@ -117,16 +118,47 @@ In order to label our unlabelled micro-clusters, we will use a label propagation
 
 \[W_{i,j} = e^{-(\frac{||x_i-x_j||}{2\sigma^2})}\]
 
-Where \(x_i\) and \(x_j\) are the centroids of micro-clusters \(i\) and \(j\), respectively, and \sigma is a standard deviation. 
+Where \(x_i\) and \(x_j\) are the centroids of micro-clusters \(i\) and \(j\), respectively, and $\sigma$ is standard deviation. 
 
-To modify this affinity matrix, as it is called by Zhou, to suit our purposes, we simply need to change this undirected complete graph into a directed complete graph where \(W_{i,j}\) represents the weight or influence that \(j\) exerts on \(i\). THis 
+To modify this affinity matrix, as it is called by Zhou, to suit our purposes, we simply need to change this undirected complete graph into a directed complete graph where \(W_{i,j}\) represents the weight or influence that \(j\) exerts on \(i\). The reason the influences will not be symmetric is that the influence \(j\) exhibits on \(i\) will now be proportional to the weight of the micro-cluster, i.e. the number of points in the cluster. This equation can be expressed as:
+\[
+	W_{i,j} =
+	\begin{cases}
+	 e^{-(\frac{||x_i-x_j||}{2\sigma^2})}\rho_j : i \neq j \\
+	0 :					 i  = j 
+\end{cases}\] 
 
+We use this function to generate the affinity matrix. Note that if $i$ and $j$ are equal, we set the affinity matrix to be zero. When we construct our affinity matrix, we include in addition to the micro-clusters generated in this mode, labelled micro-clusters from a number of the most recent models built, so that we have a large amount of labelled data to use in our label propagation. For our experiments, we have set the number of previous models to contribute labelled micro-clusters to be 3.
+
+We now need to normalise this affinity matrix. We will do this by taking the Normalised Laplacian of the affinity matrix. The equation for this normalisation is:
+
+\[ \mathscr{L} = D^{-1/2}LD^{-1/2}\] 
+
+Where $L$ is the affinity matrix we built before,  $D$ is a matrix analogous to the degree matrix in a discrete setting.$D$ is a diagonal matrix where the diagonal entries are the sum of the rows of the affinity matrix, and zero otherwise. This can be expressed as:
+\[
+	D_{i,j} =
+	\begin{cases} 
+	 \sum_{x} L_{ix} : i = j \\
+	0 :					 i  \neq j 
+\end{cases}\] 
+
+Since this matrix is diagonal, taking the inverse and square rooting the matrix is as simple as taking the inverse of each diagonal element and then taking the square root.
+
+Before we apply the label propagation, we need to construct a representation of the labels of our micro-clusters. We will call this matrix $\Upsilon$ We will generate a $C$ by $M$ matrix, where M is the number of micro-clusters. For micro-cluster $m$, if it is unlabelled, the $m$th row will contain only zeros. If $m$ is labelled, and of class $c$, then this matrix will a 1 at $\Upsilon_{mc}$.
+
+Let this initial state of $\Upsilon$ be $\Upsilon^{(0)}$. Now we can let the labels of the $\Upsilon$ matrix propagate though our complete directed graph using the affinity matrix. The equation with which this happens is:
+
+\[ \Upsilon^{(n+1)} = \alpha \mathscr{L} \Upsilon^{(n)} + (1 - \alpha) \Upsilon^{(0)}\] 
+
+Here, $\alpha $ is the learning rate, which we set of 0.99 in our experiments as suggested by Masud et al.\cite{TechRep} The label of a given micro-cluster $m$ at convergence is the column at which the value of $\Upsilon_{mc}$ is greatest. The convergence condition on the label propagation is the point where no micro-cluster changes its label over subsequent iterations. 
 \section{Using LoOP to evaluate cluster quality}
 \section{Experiments}
 Experiments were conducted on a variety of datasets. Since the aim of the alterations to the LabelStream algorithm was to increase the classification accuracy of the algorithm, no experiment tracked the relative point classification rate of the algorithm with and without the LoOP density score. Subsequently, the hardware the tests were performed on is not particularly relevant, however for completeness they were performed on a MacBook Pro with a 2.5GHz processor and 4GB of memory. 
 
 Since the LabelStream algorithm is stochastic, for each of these results, the test was run twenty times each, and the cumulative accuracy results for each averaged. 
 
+Relevant parameters:
+Number of contiguous models to take labelled micro-clusters from in label propagation = $3$
 
 \subsection{SynD Dataset}
 
@@ -150,8 +182,7 @@ Number of points before drift recalculation  = 1000\\
 Noisy points = \(5\% \)
 \subsubsection{Results}
 
-\includegraphics[scale= 0.6]{synDNoWeightOnPrediction}
-\includegraphics[scale= 0.6]{synDWeightOnPrediction}
+\includegraphics[scale= 0.6]{SynDFinalLine}
 
 As we can see from this clearly labelled graph, using the cluster weighting in the label prediction slightly improved the cumulative accuracy of the classifier.  One of the observed properties of this dataset was that the classification accuracy was increased by excluding originally unlabelled microclusters from the ensemble point classification; in short, the label propagation onto unlabelled microclusters degraded the performance of the algorithm. 
 
@@ -202,6 +233,7 @@ Masud, Mohammad M., et al. "Facing the reality of data stream classification: co
 Besag, Julian. "On the statistical analysis of dirty pictures." Journal of the Royal Statistical Society. Series B (Methodological) (1986): 259-302.
 
 \bibitem{LabProp}
+Zhou, Dengyong, et al. "Learning with local and global consistency." Advances in neural information processing systems 16.16 (2004): 321-328.
 
 \end{thebibliography}
 \end{document}

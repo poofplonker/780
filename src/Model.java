@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -16,6 +17,7 @@ public class Model {
 	private ArrayList<Boolean> seenClass;
 	private ArrayList<PseudoPoint> pseudoPoints;
 	private ArrayList<DataPoint> trainingData;
+	private ArrayList<Double> loopSummary;
 	private DataChunk dataChunk;
 	private int totalPoints;
 	private int[] classData;
@@ -40,11 +42,32 @@ public class Model {
 		genMicroClusters();
 		double nPlof = Loop.NPlof(microClusters);
 		createPseudoPoints(nPlof);
+		double[] loopScores = new double[pseudoPoints.size()];
+		for(int i = 0; i <pseudoPoints.size(); i++ ){
+			loopScores[i] = pseudoPoints.get(i).getClusterRating();
+		}
+		Arrays.sort(loopScores);
+		loopSummary = new ArrayList<Double>();
+		loopSummary.add(loopScores[0]);
+
+		loopSummary.add(loopScores[(pseudoPoints.size()-1)/4]);
+		loopSummary.add(loopScores[2*(pseudoPoints.size()-1)/4]);
+		loopSummary.add(loopScores[3*(pseudoPoints.size()-1)/4]);
+		loopSummary.add(loopScores[pseudoPoints.size()-1]);
+		System.out.println("Loop Summary:");
+		for(int i = 0; i < loopSummary.size(); i++){
+			System.out.print(loopSummary.get(i) + " ");
+		}
+		System.out.println();
 		System.out.println("Model gen done");
 	}
 	
 	public int getIndex(){
 		return index;
+	}
+	
+	public ArrayList<Double> getLoopSummary(){
+		return loopSummary;
 	}
 	
 	public void incrementClass(){
@@ -441,8 +464,10 @@ public class Model {
 		}
 
 		double[][] tZero = new double[vectorLength][c+1];
+		int[] classTracker = new int[vectorLength];
 		for(int i = 0; i < vectorLength; i++){
 			int curClass = workingList.get(i).getLabel()+1;
+			classTracker[i] = curClass;
 			for(int j = 0; j < c+1; j++){
 				if(j == curClass && curClass != 0){
 					tZero[i][j] = 1;
@@ -466,11 +491,19 @@ public class Model {
 			//tZero = currentT.getArray();
 			converge = true;
 			for(int i = 0; i < vectorLength; i++){
+				//find class of I by finding max value
+				int maxIndex = 0;
+				double maxValue = 0;
 				for(int j = 0; j < c+1; j++){
-					if(Math.abs(prevT.get(i, j) - currentT.get(i,j)) > epsilon){
-						converge = false;
+					if(currentT.get(i,j) > maxValue){
+						maxValue = currentT.get(i,j);
+						maxIndex = j;
 					}
 				}
+				if(maxIndex != classTracker[i]){
+					converge = false;
+				}
+				classTracker[i] = maxIndex;
 			}
 			iterations++;
 		}

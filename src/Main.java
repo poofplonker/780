@@ -16,13 +16,13 @@ public class Main {
 	private static final int CHUNKSIZE = 1000;
 	private static final int L = 6;
 	private static final int K = 50;
-	private static final int TESTNUMBER = 2;
-	private static final int ITERATIONS = 50;
+	private static final int TESTNUMBER = 30;
+	private static final int ITERATIONS = 200;
 	private static final double PERCENTUNLABELLED = 0.9;
 	private static final String OUTPUTGRAPHNAME = "output/SynDFinal";
 	private static final String GRAPHTITLE = "SynD Dataset";
 	private static final boolean SYNTHETIC = true;
-	private static final int ERRORINTERVAL = 24;
+	private static final int ERRORINTERVAL = 25;
 	private static final int SYNTHETICLENGTH = 21;
 	private static final String FILE1 = "input/kddcup.data_10_percent_corrected";
 	private static final String FILE2 = "input/covtype.data";
@@ -33,9 +33,10 @@ public class Main {
 		writer.println("For each test: ");
 		LinkedList<Double> error1 = new LinkedList<Double>();
 		LinkedList<Double> error2 = new LinkedList<Double>();
-		LinkedList<Double> results1 = singleTest(false, error1);
-		LinkedList<Double> results2 = singleTest(true, error2);
-
+		ArrayList<Double> loopSum1 = new ArrayList<Double>();
+		ArrayList<Double> loopSum2 = new ArrayList<Double>();
+		LinkedList<Double> results1 = singleTest(false, error1, loopSum1);
+		LinkedList<Double> results2 = singleTest(true, error2, loopSum2);
 
 		for(Double d: results1){
 			System.out.println("Recorded point" + d);
@@ -46,31 +47,31 @@ public class Main {
 		writer.println("Final Result:");
 		writePercents(results1, writer, -1);
 		writer.close();
-		Graphing.exportGraph(results1, results2, error1, error2,ERRORINTERVAL, GRAPHTITLE, OUTPUTGRAPHNAME);
+		Graphing.exportGraph(results1, results2, error1, error2,loopSum1, loopSum2, ERRORINTERVAL, GRAPHTITLE, OUTPUTGRAPHNAME);
 	}
 	
-	private static LinkedList<Double> singleTest(boolean ratingCluster, LinkedList<Double> error) throws IOException{
-		LinkedList<Double> results = ReaSC(L, K, PERCENTUNLABELLED, CHUNKSIZE, SYNTHETIC, ratingCluster);
+	private static LinkedList<Double> singleTest(boolean ratingCluster, LinkedList<Double> error, ArrayList<Double> loopSum) throws IOException{
+		LinkedList<Double> results = ReaSC(L, K, PERCENTUNLABELLED, CHUNKSIZE, SYNTHETIC, ratingCluster, loopSum);
 		LinkedList<Double> currentResult;
 		LinkedList<LinkedList<Double>> store = new LinkedList<LinkedList<Double>>();
 		LinkedList<Double> tempStore = new LinkedList<Double>();
-		int interval = ERRORINTERVAL;
+		int interval = 0;
 		if(ratingCluster){
-			interval++;
+			interval = ERRORINTERVAL/2;
 		}
 		for(int j = 0; j < results.size(); j++){
-			if(j%interval == 0){
+			if(j%ERRORINTERVAL == interval){
 				tempStore.add(results.get(j));
 			}
 		}
 		store.add(tempStore);
 		for(int i = 1; i < TESTNUMBER; i++){
 			System.out.println("Test " + i + " complete");
-			currentResult = ReaSC(L, K, PERCENTUNLABELLED, CHUNKSIZE, SYNTHETIC, ratingCluster);
+			currentResult = ReaSC(L, K, PERCENTUNLABELLED, CHUNKSIZE, SYNTHETIC, ratingCluster, loopSum);
 			tempStore = new LinkedList<Double>();
 			for(int j = 0; j < currentResult.size(); j++){
 				results.set(j, results.get(j)+currentResult.get(j));
-				if(j%ERRORINTERVAL == 0){
+				if(j%ERRORINTERVAL == interval){
 					tempStore.add(currentResult.get(j));
 				}
 			}
@@ -79,7 +80,7 @@ public class Main {
 		LinkedList<Double> avs = new LinkedList<Double>();
 		for(int j = 0; j < results.size(); j++){
 			results.set(j,results.get(j)/TESTNUMBER);
-			if(j%interval == 0){
+			if(j%ERRORINTERVAL == interval){
 				avs.add(results.get(j));
 				System.out.println("Average of " + j + ": " + results.get(j));
 			}
@@ -117,7 +118,7 @@ public class Main {
 		p.println();
 	}
 	
-	public static LinkedList<Double> ReaSC(int l, int k, double percentUnlabelled, int chunSize, boolean synthetic, boolean ratingCluster) throws IOException{
+	public static LinkedList<Double> ReaSC(int l, int k, double percentUnlabelled, int chunSize, boolean synthetic, boolean ratingCluster, ArrayList<Double> loopSum) throws IOException{
 		BufferedReader br;
 		if(!synthetic){
 			br = new BufferedReader(new FileReader(FILE2));
@@ -165,6 +166,10 @@ public class Main {
 
 			//System.out.println("Number of classes: " + c);
 			Model m = new Model(twist, chunk,k, c, ens.getClassCounter(), ens.getTotalPoints(), iterations, ratingCluster);
+			ArrayList<Double> loopSummary = m.getLoopSummary();
+			for(Double dd: loopSummary){
+				loopSum.add(dd);
+			}
 			ArrayList<PseudoPoint> pp = m.getPseudo();
 			int oneCounter = 0;
 			int zeroCounter = 0;
