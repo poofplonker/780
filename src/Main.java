@@ -13,15 +13,15 @@ import cern.jet.random.engine.MersenneTwister;
 
 public class Main {
 	
-	private static final int CHUNKSIZE = 1000;
+	private static final int CHUNKSIZE = 1600;
 	private static final int L = 6;
 	private static final int K = 50;
-	private static final int TESTNUMBER = 30;
-	private static final int ITERATIONS = 200;
+	private static final int TESTNUMBER = 20;
+	private static final int ITERATIONS = 100;
 	private static final double PERCENTUNLABELLED = 0.9;
-	private static final String OUTPUTGRAPHNAME = "output/SynDFinalDCDiff";
-	private static final String GRAPHTITLE = "SynD Dataset";
-	private static final boolean SYNTHETIC = true;
+	private static final String OUTPUTGRAPHNAME = "output/forestCov";
+	private static final String GRAPHTITLE = "Forest Cover Dataset";
+	private static final boolean SYNTHETIC = false;
 	private static final int ERRORINTERVAL = 25;
 	private static final int SYNTHETICLENGTH = 21;
 	private static final String FILE1 = "input/kddcup.data_10_percent_corrected";
@@ -126,7 +126,7 @@ public class Main {
 			br = null;
 		}
 		MersenneTwister twist = new MersenneTwister(new java.util.Date());
-		int c = 7;
+		int c = 8;
 		Ensemble ens = new Ensemble(l,k,c);
 		int vectorLength = 0;	//length of datavector
 		int chunkSize = chunSize;	//chunksize
@@ -154,6 +154,7 @@ public class Main {
 				return percentArray;
 			}
 			c = d.getSeenClasses();
+			c++;
 			System.out.println("Seen classes: " + c);
 			ens.expandClasses(c);
 			if(iterations > 3){
