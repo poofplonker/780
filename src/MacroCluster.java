@@ -128,12 +128,11 @@ public class MacroCluster extends Cluster{
 			}
 		}
 		int dc;
-//		if(isLabelled){
-		dc = totalPoints - classCounter[label];
-//		}
-//		}else{
-//			dc = 0;
-//		}
+		if(isLabelled){
+			dc = totalPoints - classCounter[label];
+		}else{
+			dc = 0;
+		}
 		//System.out.println("Label: " + label+ " -- dc:  "+ dc );
 		//System.out.println("In impurity calc - adc after calc:" + adc);
 		//System.out.println("ADC: " + dc + " - Ent: " + entropy );

@@ -19,7 +19,7 @@ public class Main {
 	private static final int TESTNUMBER = 30;
 	private static final int ITERATIONS = 200;
 	private static final double PERCENTUNLABELLED = 0.9;
-	private static final String OUTPUTGRAPHNAME = "output/SynDFinal";
+	private static final String OUTPUTGRAPHNAME = "output/SynDFinalDCDiff";
 	private static final String GRAPHTITLE = "SynD Dataset";
 	private static final boolean SYNTHETIC = true;
 	private static final int ERRORINTERVAL = 25;

@@ -151,6 +151,67 @@ Let this initial state of $\Upsilon$ be $\Upsilon^{(0)}$. Now we can let the lab
 \[ \Upsilon^{(n+1)} = \alpha \mathscr{L} \Upsilon^{(n)} + (1 - \alpha) \Upsilon^{(0)}\] 
 
 Here, $\alpha $ is the learning rate, which we set of 0.99 in our experiments as suggested by Masud et al.\cite{TechRep} The label of a given micro-cluster $m$ at convergence is the column at which the value of $\Upsilon_{mc}$ is greatest. The convergence condition on the label propagation is the point where no micro-cluster changes its label over subsequent iterations. 
+
+\subsection{Using a Model to Classify a Point}
+
+In order to classify a given point against a single model, we build a vector $Y$with $C$ elements, where $Y_c$ represents a score for that point being of class $c$. To generate this score, we simply use the Gaussian Kernel Function to score the distance between the point and every micro-cluster, and then add that score to $Y_c$ where $c$ is the label of that given micro-cluster. We will also, after comparing the point to every micro-cluster, normalise the vector, with a small non-zero epsilon to avoid dividing by zero. This process can be expressed as an equation for labelling point $x$:
+
+\[ Y = \frac{\sum_j(W(x,\mu_j))Lab_j}{\sum_j{W(x,\mu_j)} + \epsilon} \]
+where
+\[W(i,j) = e^{-(\frac{||x_i-x_j||}{2\sigma^2})}\rho_j\]
+
+To classify the point against this model, we simply label the point as class $c$ where $c$ is the index with the largest value in $Y$.
+\section{Classification and the Ensemble}
+ 
+An ensemble is a collection of Models which we use to classify points in our stream. We use an ensemble to classify points in the data stream rather than the most recent model for several reasons. Firstly, because a single model is trained on only a small subset of the dataset, a certain model can be poorly trained. In this case, our poorly trained model will be quickly evicted from our ensemble. 
+
+Secondly, the ensemble is an excellent way to handle concept drift within a stream. If there is a concept shift within the stream, models trained after the concept shift will gradually replace those models trained beforehand, and slowly the classification decisions of the ensemble will adapt to the concept drift. If however, a certain change in distribution of data in a chunk is cause by random chance and is not a genuine concept drift, the model trained with that data will simply be evicted as soon as the data distribution returns to normal. 
+
+\subsection{Adding a Model to the Ensemble}
+
+Once we have generated a model, we will need to include it in our ensemble of Models, which we will use to classify points. There are, however, certain steps we need to execute whenever we add an model to an ensemble. Firstly, we need to add our new model to the current ensemble. If our ensemble is not full, then we simply add it without any modification. However, if our ensemble is full, we need to evict our worst performing model. We do this by taking the labelled points in the data chunk used to train the most recent model (i.e, the most recent labelled points) and scoring the performance of each model in the ensemble. If two models perform equally well, we remove the oldest model.
+
+\subsection{Handling a new Class in the Data Stream}
+
+As we process the data stream, we may have a new class appear in the data stream that has never been seen before. This could be because our manual classifier felt that an examined data point could not be described within the current class framework. Woolam et al\cite{LabStr} call this an 'evolved class'. On the other hand, this could be a very rare class which has always existed in the data stream, but by chance has only now appeared. This raises the issue of what should be done about this new class. 
+
+Since previous models do not know about this new class, it is not possible that previous models can predict it. So what we will do is inject a micro-cluster representing that point into the previous models, giving them a chance to predict the point when they are being evaluated for quality when a new ensemble is added. So, for any class which has never been seen before in the stream, we will add a micro-cluster to each model in the ensemble of that class. 
+
+However, doing this repeatedly would inflate the number of micro-clusters in each model, and possibly inflate the complexity many of our processes. So to compensate, for every injected micro-cluster, we will find the two micro-clusters in each model which are of the same label and closest together, and merge them. This merging consists of removing both micro-clusters and creating a new micro-cluster where the centroid is the average of the old centroids, and the number of points is the sum of the number of points in both clusters. If we have so many classes that each micro-cluster in a model has a distinct label (and hence, no point can be merged), then we have violated the rule of thumb that the number of macro-clusters K should be greater than the number of classes in the data stream. 
+
+Hence, we merge the nearest two micro-clusters only if:
+
+\begin{enumerate}
+\item There exists two micro-cluster of the same label
+\item The total number of micro-clusters, \( M_i \geq K \), the number of macro-clusters. 
+\end{enumerate}
+
+There is the issue of whether injecting models with the new class and merging the closest pair of micro-clusters of the same label increases the classification accuracy. One the one hand, we might think the accuracy increases because no model without information on the class can predict a point of that class. However, injecting a micro-cluster into all of the models of the ensemble could increase the correlation between each model, reducing the overall accuracy of the ensemble. \cite{Inject}
+
+The theory behind this injection is given a full discussion in Khan et al. \cite{TechRep}, and I will not repeat it here. The key finding is that as long as single model error decreases monotonically as the prior probability of the evolved class increases, our injection will always improve the quality of the ensemble classification given that our ensemble is not too large. This conclusion is drawn by proof incorporating a proof included in Turner et al.\cite{Inject}
+
+\subsection{Removing Harmful Micro-Clusters from Models}
+
+When updating our ensemble, we also attempt to remove micro-clusters from models which may have a negative impact upon the classification accuracy of our ensemble. 
+
+This may seem like a tricky task, however a very clear theory for dealing with this problem is presented by Woolam et al.\cite{LabStr}. Firstly, we introduce the notion of a swing voter. A swing voter is a micro-cluster which determines which class a point to be predicted $x$ will be classified as: such that if that micro-cluster were a different label, then that point would be classified differently. It is asserted that such a micro-cluster must exist, and usually, it will be the micro-cluster which has the greatest value on the inductive label propagation function, $W(i,j)$.
+
+Lets say that the probability a micro-cluster $m_i$ is a swing voter for a test point is $\alpha_i$. So for instance if $\alpha_i = 0.5$ that means that if there are 100 test points, then $m_i$ is the swing voter for 50 of them. Also, suppose we know the real class of a certain test point. Let $p_i$ be the probability that for micro-cluster $m_i$ and the test points for which it is the swing voter, the test point has the same label as $m_i$. So if $p_i$ is 0.5, then for the 50 test points for which $m_i$ is a swing voter, only 25 of them have the same label. 
+
+Using this framework, we can say that a point $x$ is not misclassified because of a certain micro-cluster $m_i$ if:
+\begin{enumerate}
+\item $m_i$ is not a swing voter, or
+\item $m_i$ is a swing voter and the class of $x$ and $m_i$ are the same.
+\end{enumerate}
+
+The probability of the first case is $(1-\alpha_i)$ and the probability of the second is $(\alpha_i(1-p_i))$. Hence, the probability of a certain micro-cluster ensuring a point is mislabelled is $1-\alpha_ip_i$. This means the probability that the next $N$ test cases are not mislabelled due to $m_i$ is $(1-\alpha_ip_i)^N$, and the chances of a single point being mislabelled due to $m_i$ is $1-(1-\alpha_ip_i)^N$. The expected classification error for a whole model is: $(1-\suma_i(1-\alpha_ip_i)^N)$.
+
+This means that if we want to reduce the classification error for the whole model, we can either reduce $\alpha_i$ or reduce $p_i$. In fact, it is this reasoning that led us to split unlabelled micro-clusters in the clustering step: by splitting the micro-cluster, we essentially replace one cluster with high $p_i$ with two with low $p_i$. 
+
+However, if we were to attempt to reduce $\alpha_i$, we could do that by removing all micro-clusters! But that would preposterous. Instead, what we will do is keep track of micro-clusters which have high $p_i$, and if they become too high, we will simply remove them. This should improve the model classification accuracy, because for that micro-cluster, $\alpha_i = 0$ and so it will not cause any misclassification. However, this improvement only occurs if there is no cascading effect. If we remove a certain micro-cluster, now adjacent micro-clusters are swing voters for the points for which our deleted micro-clusters were swing voters. This may or may not lead those micro-clusters to be eligible for deletion. If we continue at this rate, then most or all of the micro-clusters could be deleted. 
+
+Unfortunately, there is no tidy theory to deal with this problem. For our purposes, there is a hard limit of micro-clusters eligible to be deleted. Woolam suggested a threshold of no more than 50$\%$ point deletion, however here we allowed arbitrary deletion until the number of micro-clusters is no more than $K$, the number of macro-clusters in a model. 
+
 \section{Using LoOP to evaluate cluster quality}
 \section{Experiments}
 Experiments were conducted on a variety of datasets. Since the aim of the alterations to the LabelStream algorithm was to increase the classification accuracy of the algorithm, no experiment tracked the relative point classification rate of the algorithm with and without the LoOP density score. Subsequently, the hardware the tests were performed on is not particularly relevant, however for completeness they were performed on a MacBook Pro with a 2.5GHz processor and 4GB of memory. 
@@ -159,6 +220,8 @@ Since the LabelStream algorithm is stochastic, for each of these results, the te
 
 Relevant parameters:
 Number of contiguous models to take labelled micro-clusters from in label propagation = $3$
+$\sigma$ for label propagation and Classification = 0.25
+$\alpha$ learning rate for label propagation = 0.99
 
 \subsection{SynD Dataset}
 
@@ -234,6 +297,9 @@ Besag, Julian. "On the statistical analysis of dirty pictures." Journal of the R
 
 \bibitem{LabProp}
 Zhou, Dengyong, et al. "Learning with local and global consistency." Advances in neural information processing systems 16.16 (2004): 321-328.
+
+\bibitem{Inject}
+Tumer, Kagan, and Joydeep Ghosh. "Error correlation and error reduction in ensemble classifiers." Connection science 8.3-4 (1996): 385-404.
 
 \end{thebibliography}
 \end{document}

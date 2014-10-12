@@ -659,7 +659,7 @@ public class Model {
 		for(int i = 0; i < pseudoPoints.size(); i++){
 			currentPseudo = pseudoPoints.get(i);
 			//System.out.println("Removal chcek: " + removedPseudo/numPseudo);
-			if(currentPseudo.getAccuracy() < boundary && removalCounter/startingPseudo < 0.5 && removedPseudo/numPseudo < 0.8){
+			if(currentPseudo.getAccuracy() < boundary && pseudoPoints.size() > k){
 				pseudoPoints.remove(i);
 				LinkedList<DataPoint> temp = neighbours.get(i);
 				neighbours.remove(i);
@@ -669,6 +669,7 @@ public class Model {
 				i--;
 				removedPseudo++;
 				removalCounter++;
+				
 			}
 			
 		}

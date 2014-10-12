@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.1415926-2.4-1.40.13 (TeX Live 2012) (format=pdflatex 2012.6.30)  9 OCT 2014 20:40
+This is pdfTeX, Version 3.1415926-2.4-1.40.13 (TeX Live 2012) (format=pdflatex 2012.6.30)  12 OCT 2014 02:39
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -342,7 +342,7 @@ File: ursfs.fd 1998/03/24 rsfs font definition file (jk)
 ) [1
 
 {/usr/local/texlive/2012/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]
-<LabStrOverview.png, id=72, 950.55125pt x 411.5375pt>
+<LabStrOverview.png, id=92, 950.55125pt x 411.5375pt>
 File: LabStrOverview.png Graphic file (type png)
  <use LabStrOverview.png>
 Package pdftex.def Info: LabStrOverview.png used on input line 25.
@@ -359,7 +359,7 @@ been already used, duplicate ignored
 l.33 T
       raining a model based on a chunk of data consists of three steps. Firs...
 [1 <./LabStrOverview.png>] [2] [3] [4] [5]
-<ClusterSplitting.png, id=116, 595.22375pt x 263.98625pt>
+<ClusterSplitting.png, id=136, 595.22375pt x 263.98625pt>
 File: ClusterSplitting.png Graphic file (type png)
 
 <use ClusterSplitting.png>
@@ -370,36 +370,37 @@ Overfull \hbox (26.6538pt too wide) in paragraph at lines 103--104
 [][] 
  []
 
-[6 <./ClusterSplitting.png>] [7] [8] [9]
-<SynDFinalLine.png, id=145, 301.125pt x 301.125pt>
+[6 <./ClusterSplitting.png>] [7] [8] [9] [10] [11] [12]
+<SynDFinalLine.png, id=189, 301.125pt x 301.125pt>
 File: SynDFinalLine.png Graphic file (type png)
  <use SynDFinalLine.png>
-Package pdftex.def Info: SynDFinalLine.png used on input line 185.
+Package pdftex.def Info: SynDFinalLine.png used on input line 241.
 (pdftex.def)             Requested size: 180.67638pt x 180.67638pt.
 
-Overfull \hbox (1.64595pt too wide) in paragraph at lines 194--195
+[13]
+Overfull \hbox (1.64595pt too wide) in paragraph at lines 250--251
 \OT1/cmr/m/n/12 The KD-D-Cup Net-work In-tru-sion dataset is an ex-tremely com-
 mon test dataset
  []
 
-[10 <./SynDFinalLine.png>] [11] [12] [13]
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 239.
- [14
+[14 <./SynDFinalLine.png>] [15] [16]
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 298.
+ [17
 
 ]
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 239.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 298.
  (./HonoursReport.aux)
-Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 239.
-Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 239.
+Package atveryend Info: Executing hook `AtVeryEndDocument' on input line 298.
+Package atveryend Info: Executing hook `AtEndAfterFileList' on input line 298.
 Package rerunfilecheck Info: File `HonoursReport.out' has not changed.
-(rerunfilecheck)             Checksum: DAF05A7C1D129F502636B849D7F6763C;1013.
-Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 239.
+(rerunfilecheck)             Checksum: AAA1DBC146C724AE0C3A994A33ACB3ED;1443.
+Package atveryend Info: Empty hook `AtVeryVeryEnd' on input line 298.
  ) 
 Here is how much of TeX's memory you used:
- 6203 strings out of 493488
- 91676 string characters out of 3141326
- 178357 words of memory out of 3000000
- 9398 multiletter control sequences out of 15000+200000
+ 6222 strings out of 493488
+ 91903 string characters out of 3141326
+ 178385 words of memory out of 3000000
+ 9404 multiletter control sequences out of 15000+200000
  12088 words of font info for 47 fonts, out of 3000000 for 9000
  957 hyphenation exceptions out of 8191
  29i,8n,28p,928b,342s stack positions out of 5000i,500n,10000p,200000b,50000s
@@ -418,10 +419,10 @@ e/2012/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texlive
 012/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb></usr/local/texlive/201
 2/texmf-dist/fonts/type1/public/amsfonts/cm/cmtt10.pfb></usr/local/texlive/2012
 /texmf-dist/fonts/type1/public/rsfs/rsfs10.pfb>
-Output written on HonoursReport.pdf (15 pages, 454214 bytes).
+Output written on HonoursReport.pdf (18 pages, 465412 bytes).
 PDF statistics:
- 250 PDF objects out of 1000 (max. 8388607)
- 211 compressed objects within 3 object streams
- 56 named destinations out of 1000 (max. 500000)
- 136 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 294 PDF objects out of 1000 (max. 8388607)
+ 252 compressed objects within 3 object streams
+ 69 named destinations out of 1000 (max. 500000)
+ 176 words of extra memory for PDF output out of 10000 (max. 10000000)
 

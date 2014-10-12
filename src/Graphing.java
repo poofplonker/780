@@ -138,6 +138,7 @@ public class Graphing {
         final BoxAndWhiskerRenderer renderer = new BoxAndWhiskerRenderer();
         renderer.setFillBox(false);
         renderer.setMeanVisible(false);
+        renderer.setDataBoundsIncludesVisibleSeriesOnly(true);
         final CategoryPlot plot = new CategoryPlot(dataset, xAxis, yAxis, renderer);
 
         final JFreeChart chart = new JFreeChart(
