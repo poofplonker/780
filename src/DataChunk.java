@@ -63,6 +63,7 @@ public class DataChunk {
 				}
 			}
 		}
+		System.out.println("Max Label in label Chunk:" + maxLabel );
 	}
 
 	public ArrayList<DataPoint> getDataPointArray(){

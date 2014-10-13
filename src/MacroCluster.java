@@ -127,12 +127,8 @@ public class MacroCluster extends Cluster{
 				entropy += (-1*prior*((Math.log(prior)/Math.log(2))));
 			}
 		}
-		int dc;
-		if(isLabelled){
-			dc = totalPoints - classCounter[label];
-		}else{
-			dc = 0;
-		}
+		int dc = totalPoints - classCounter[label];
+		
 		//System.out.println("Label: " + label+ " -- dc:  "+ dc );
 		//System.out.println("In impurity calc - adc after calc:" + adc);
 		//System.out.println("ADC: " + dc + " - Ent: " + entropy );
@@ -177,6 +173,11 @@ public class MacroCluster extends Cluster{
 	public int countMicroClusters(){
 		
 		return countPredictedClasses() + countNumClasses();
+	}
+
+	public int getNumPoints() {
+		// TODO Auto-generated method stub
+		return totalPoints;
 	}
 	
 	

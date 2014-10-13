@@ -16,11 +16,11 @@ public class Main {
 	private static final int CHUNKSIZE = 1600;
 	private static final int L = 6;
 	private static final int K = 50;
-	private static final int TESTNUMBER = 20;
-	private static final int ITERATIONS = 100;
+	private static final int TESTNUMBER = 10;
+	private static final int ITERATIONS = 250;
 	private static final double PERCENTUNLABELLED = 0.9;
-	private static final String OUTPUTGRAPHNAME = "output/forestCov";
-	private static final String GRAPHTITLE = "Forest Cover Dataset";
+	private static final String OUTPUTGRAPHNAME = "output/KDD";
+	private static final String GRAPHTITLE = "KDDCup DataSet";
 	private static final boolean SYNTHETIC = false;
 	private static final int ERRORINTERVAL = 25;
 	private static final int SYNTHETICLENGTH = 21;
@@ -121,7 +121,7 @@ public class Main {
 	public static LinkedList<Double> ReaSC(int l, int k, double percentUnlabelled, int chunSize, boolean synthetic, boolean ratingCluster, ArrayList<Double> loopSum) throws IOException{
 		BufferedReader br;
 		if(!synthetic){
-			br = new BufferedReader(new FileReader(FILE2));
+			br = new BufferedReader(new FileReader(FILE1));
 		}else{
 			br = null;
 		}
@@ -154,7 +154,6 @@ public class Main {
 				return percentArray;
 			}
 			c = d.getSeenClasses();
-			c++;
 			System.out.println("Seen classes: " + c);
 			ens.expandClasses(c);
 			if(iterations > 3){

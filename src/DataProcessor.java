@@ -80,12 +80,14 @@ public class DataProcessor {
 		if(training && classLabel instanceof CategoricalData ){
 			if(!classMap.containsKey(((CategoricalData) classLabel).getRaw())){
 				classMap.put(((CategoricalData) classLabel).getRaw(),1);
+				System.out.println("Now seen: "+ ((CategoricalData) classLabel).getRaw());
 				seenClasses++;
 			}
 		}else if(training && classLabel instanceof IntegerData){
 			//System.out.println("Label of this point is: " + ((IntegerData) classLabel).getRaw());
 			if(!intClassMap.containsKey(((IntegerData) classLabel).getRaw())){
 				intClassMap.put(((IntegerData) classLabel).getRaw(),1);
+				
 				seenClasses++;
 			}
 		}

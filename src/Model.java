@@ -89,7 +89,6 @@ public class Model {
 
 		int base = 0;
 		for(MacroCluster m: macroClusters){
-			
 			//labelled points will be in cluster base+ 
 			HashMap<Integer,Integer> classToClusterLabelled = new HashMap<Integer,Integer>();
 			HashMap<Integer,Integer> classToClusterUnlabelled = new HashMap<Integer,Integer>();
@@ -237,9 +236,9 @@ public class Model {
 		//Select centroids proportionate to class representation for initialisation.
 		
 		initialiseClusters(twister);
-		/*for(int i = 0; i < k; i++){
-			System.out.println("Macrocluster "+ i + " initial centroid: " + macroClusters.get(i).getCentroid());
-		}*/
+//		for(int i = 0; i < k; i++){
+//			System.out.println("Macrocluster "+ i + " initial centroid: " + macroClusters.get(i).getCentroid());
+//		}
 		//initialise all dataPoints to cluster with nearest centroid.
 		double totalValue = 0;
 		for(DataPoint d: dataPoints){
@@ -255,13 +254,13 @@ public class Model {
 
 		//System.out.println("Total Value for EM: " + totalValue);
 		expectationMinimisation(clusters,dataPoints);
-//		for(int i = 0; i < clusters.size(); i++){
-//			System.out.println("Cluster " + i + " has " + clusters.get(i).totalPoints + " points and " + clusters.get(i).countNumClasses()+ "classes");
-////			for(int j = 0; j < clusters.get(i).totalPoints; j++){
-////				DataPoint temp = clusters.get(i).getDataPoints().get(j);
-////				//System.out.println("\t" + temp.getLabel() + " distance to cent:" + temp.getDistanceValue(clusters.get(i).getCentroid()) + "Averaage dist to others: " + temp.getAverageDist());
-////			}
-//		}
+		for(int i = 0; i < clusters.size(); i++){
+			System.out.println("Cluster " + i + " has " + clusters.get(i).totalPoints + " points and " + clusters.get(i).countNumClasses()+ "classes");
+//			for(int j = 0; j < clusters.get(i).totalPoints; j++){
+//				DataPoint temp = clusters.get(i).getDataPoints().get(j);
+//				//System.out.println("\t" + temp.getLabel() + " distance to cent:" + temp.getDistanceValue(clusters.get(i).getCentroid()) + "Averaage dist to others: " + temp.getAverageDist());
+//			}
+		}
 		return clusters;
 		
 	}
@@ -284,6 +283,9 @@ public class Model {
 			Collections.shuffle(dataPoints);
 			double totalValue = 0;
 			for(DataPoint d: dataPoints){
+				if(clusters.get(d.getClusterIndex()).getNumPoints() == 1){
+					continue;
+				}
 				clusters.get(d.getClusterIndex()).removePoint(d);
 				int prevSmallIndex = d.getClusterIndex();
 				totalValue += attachToNearestImp(d);
@@ -299,7 +301,7 @@ public class Model {
 		
 			iterations++;
 			//Total value calculated to ensure that expectation minimisation is in fact converging.
-			if(iterations > 1000){
+			if(iterations > 100){
 				System.out.println("EM broken by iteration limit");
 				break;
 			}

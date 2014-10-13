@@ -6,6 +6,10 @@ public class MicroCluster extends Cluster{
 	private boolean labelled;
 	private int microClusterLabel;
 	private double loopRating;
+	private double plofDenom;
+	private boolean plofDenomSet;
+	private int plofCounter;
+	
 
 	public MicroCluster(DataPoint centroid, boolean labelled, int label){
 		super(centroid);
@@ -14,7 +18,24 @@ public class MicroCluster extends Cluster{
 		totalPoints = 0;
 		microClusterLabel = label;
 		loopRating = 0;
+		plofDenomSet = false;
 		//points.add(centroid);	//done at creation outside
+	}
+	
+	public void setPlofDenom(double denom, int counter){
+		plofDenom = denom;
+		plofCounter = counter;
+		plofDenomSet = true;
+	}
+	
+	public double getPlofDenom(){
+		return plofDenom;
+	}
+	public boolean isPlofDenomSet(){
+		return plofDenomSet;
+	}
+	public int getPlofCounter(){
+		return plofCounter;
 	}
 	
 	public int getLabel(){

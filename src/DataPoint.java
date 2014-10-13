@@ -17,6 +17,8 @@ public class DataPoint {
 	private int clusterIndex;			//Which cluster the dataPoint is in. 
 	private double averageDist;
 	private int avCounter = 0;
+	private double plof;
+	private boolean plofSet;
 	private boolean isCentroid;
 	
 	public DataPoint(ArrayList<DataType> data, DataType classLabel, int i,boolean isLabeled){
@@ -29,7 +31,20 @@ public class DataPoint {
 		this.absoluteIndex = num_dataPoints++;
 		this.averageDist = 0;
 		this.isCentroid = false;
-		
+		this.plof = 0;
+		plofSet = false;
+	}
+	
+	public void setPlof(double d){
+		this.plof = d;
+		plofSet = true;
+	}
+	
+	public boolean isPlofSet(){
+		return plofSet;
+	}
+	public double getPlof(){
+		return this.plof;
 	}
 	public void setCentroid(){
 		isCentroid = true;
@@ -44,7 +59,7 @@ public class DataPoint {
 	}
 	
 	public void incrementAverageDist(double distance){
-		this.averageDist +=distance; 
+		this.averageDist += distance; 
 		avCounter++;
 	}
 	

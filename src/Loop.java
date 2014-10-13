@@ -26,9 +26,15 @@ public class Loop {
 		double plof = pDist(o,micro);
 		double denom = 0;
 		int counter = 0;
-		for(DataPoint d: micro.getDataPoints()){
-			denom += pDist(d,micro);
-			counter++;
+		if(!micro.isPlofDenomSet()){
+			for(DataPoint d: micro.getDataPoints()){
+				denom += pDist(d,micro);
+				counter++;
+			}
+			micro.setPlofDenom(denom, counter);
+		}else{
+			counter = micro.getPlofCounter();
+			plof = micro.getPlofDenom();
 		}
 		if(denom == 0){
 			plof = 0;
@@ -39,7 +45,7 @@ public class Loop {
 		
 		plof--;
 		//System.out.println("Plof: "+ plof );
-
+		o.setPlof(plof);
 		return plof;
 		
 	}
@@ -49,7 +55,12 @@ public class Loop {
 		int counter = 0;
 		for(MicroCluster m: microClusters){
 			for(DataPoint d: m.getDataPoints()){
-				double plof = Plof(d,m);
+				double plof;
+				if(!d.isPlofSet()){
+					plof = Plof(d,m);
+				}else{
+					plof = d.getPlof();
+				}
 				nPlof += plof*plof;
 				counter++;
 			}
@@ -64,7 +75,13 @@ public class Loop {
 	
 	public static double loop(DataPoint o, MicroCluster targetCluster, double nPlof ){
 		double loop = 0;
-		loop = Math.max(0, Erf.erf(Plof(o,targetCluster)/(Math.sqrt(2)*nPlof)));
+		double plof;
+		if(o.isPlofSet()){
+			plof = o.getPlof();
+		}else{
+			plof = Plof(o,targetCluster);
+		}
+		loop = Math.max(0, Erf.erf(plof/(Math.sqrt(2)*nPlof)));
 		return loop;
 		
 	}
