@@ -1,8 +1,5 @@
 import java.util.ArrayList;
 
-import Jama.util.Maths;
-import sun.tools.tree.ThisExpression;
-
 /* Class which holds a single instance of data, along with information regarding the classification of that data.*/
 
 public class DataPoint {

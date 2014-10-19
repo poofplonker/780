@@ -16,8 +16,8 @@ public class Main {
 	private static final int CHUNKSIZE = 1600;
 	private static final int L = 6;
 	private static final int K = 50;
-	private static final int TESTNUMBER = 10;
-	private static final int ITERATIONS = 250;
+	private static final int TESTNUMBER = 20;
+	private static final int ITERATIONS = 200;
 	private static final double PERCENTUNLABELLED = 0.9;
 	private static final String OUTPUTGRAPHNAME = "output/KDD";
 	private static final String GRAPHTITLE = "KDDCup DataSet";
@@ -29,15 +29,18 @@ public class Main {
 
 	
 	public static void main(String[] args) throws IOException {
+		System.setProperty("java.util.Arrays.useLegacyMergeSort", "true");
 		PrintWriter writer = new PrintWriter("output/KDDtest1.txt", "UTF-8");
 		writer.println("For each test: ");
 		LinkedList<Double> error1 = new LinkedList<Double>();
 		LinkedList<Double> error2 = new LinkedList<Double>();
+		LinkedList<Double> error3 = new LinkedList<Double>();
 		ArrayList<Double> loopSum1 = new ArrayList<Double>();
 		ArrayList<Double> loopSum2 = new ArrayList<Double>();
-		LinkedList<Double> results1 = singleTest(false, error1, loopSum1);
-		LinkedList<Double> results2 = singleTest(true, error2, loopSum2);
-
+		ArrayList<Double> loopSum3 = new ArrayList<Double>();
+		LinkedList<Double> results1 = singleTest(false, false, error1, loopSum1);	//control
+		LinkedList<Double> results2 = singleTest(false, true, error2, loopSum2);	//outlier removal
+		LinkedList<Double> results3 = singleTest(true, false, error3, loopSum3);	//cluster scoring
 		for(Double d: results1){
 			System.out.println("Recorded point" + d);
 		}
@@ -47,17 +50,20 @@ public class Main {
 		writer.println("Final Result:");
 		writePercents(results1, writer, -1);
 		writer.close();
-		Graphing.exportGraph(results1, results2, error1, error2,loopSum1, loopSum2, ERRORINTERVAL, GRAPHTITLE, OUTPUTGRAPHNAME);
+		Graphing.exportGraph(results1, results2, results3, error1, error2, error3, loopSum1, loopSum2,loopSum3 ,ERRORINTERVAL, GRAPHTITLE, OUTPUTGRAPHNAME);
 	}
 	
-	private static LinkedList<Double> singleTest(boolean ratingCluster, LinkedList<Double> error, ArrayList<Double> loopSum) throws IOException{
-		LinkedList<Double> results = ReaSC(L, K, PERCENTUNLABELLED, CHUNKSIZE, SYNTHETIC, ratingCluster, loopSum);
+	private static LinkedList<Double> singleTest(boolean removal, boolean ratingCluster, LinkedList<Double> error, ArrayList<Double> loopSum) throws IOException{
+		LinkedList<Double> results = ReaSC(L, K, PERCENTUNLABELLED, CHUNKSIZE, SYNTHETIC, removal, ratingCluster, loopSum);
 		LinkedList<Double> currentResult;
 		LinkedList<LinkedList<Double>> store = new LinkedList<LinkedList<Double>>();
 		LinkedList<Double> tempStore = new LinkedList<Double>();
 		int interval = 0;
 		if(ratingCluster){
-			interval = ERRORINTERVAL/2;
+			interval = ERRORINTERVAL/3;
+		}
+		if(removal){
+			interval = 2*ERRORINTERVAL/3;
 		}
 		for(int j = 0; j < results.size(); j++){
 			if(j%ERRORINTERVAL == interval){
@@ -67,7 +73,7 @@ public class Main {
 		store.add(tempStore);
 		for(int i = 1; i < TESTNUMBER; i++){
 			System.out.println("Test " + i + " complete");
-			currentResult = ReaSC(L, K, PERCENTUNLABELLED, CHUNKSIZE, SYNTHETIC, ratingCluster, loopSum);
+			currentResult = ReaSC(L, K, PERCENTUNLABELLED, CHUNKSIZE, SYNTHETIC, removal,ratingCluster, loopSum);
 			tempStore = new LinkedList<Double>();
 			for(int j = 0; j < currentResult.size(); j++){
 				results.set(j, results.get(j)+currentResult.get(j));
@@ -118,7 +124,7 @@ public class Main {
 		p.println();
 	}
 	
-	public static LinkedList<Double> ReaSC(int l, int k, double percentUnlabelled, int chunSize, boolean synthetic, boolean ratingCluster, ArrayList<Double> loopSum) throws IOException{
+	public static LinkedList<Double> ReaSC(int l, int k, double percentUnlabelled, int chunSize, boolean synthetic, boolean removal,boolean ratingCluster, ArrayList<Double> loopSum) throws IOException{
 		BufferedReader br;
 		if(!synthetic){
 			br = new BufferedReader(new FileReader(FILE1));
@@ -165,7 +171,7 @@ public class Main {
 			//System.out.println("Length now: " + vectorLength);
 
 			//System.out.println("Number of classes: " + c);
-			Model m = new Model(twist, chunk,k, c, ens.getClassCounter(), ens.getTotalPoints(), iterations, ratingCluster);
+			Model m = new Model(twist, chunk,k, c, ens.getClassCounter(), ens.getTotalPoints(), iterations, removal, ratingCluster);
 			ArrayList<Double> loopSummary = m.getLoopSummary();
 			for(Double dd: loopSummary){
 				loopSum.add(dd);

@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.LinkedList;
 
 public class MicroCluster extends Cluster{
@@ -50,10 +51,17 @@ public class MicroCluster extends Cluster{
 	public double genLoopRating(double nPlof){
 		//for every point, generate its loop value
 		double loopSum = 0;
-		for(DataPoint d: points){
-			loopSum = Math.max(loopSum, Loop.loop(d, this, nPlof));
+		double[] scoreList = new double[points.size()];
+		for(int i = 0; i < points.size(); i++){
+			scoreList[i] = Loop.loop(points.get(i), this, nPlof);
 			//counter++;
 		}
+		Arrays.sort(scoreList);
+		int topPointNum = points.size()/20 + 1;
+		for(int i = points.size()-1; i >= points.size()-topPointNum; i--){
+			loopSum += scoreList[i];
+		}
+		loopSum /= topPointNum;
 		loopSum = 1 - loopSum;
 		loopRating = loopSum;
 		return loopSum;
@@ -67,5 +75,10 @@ public class MicroCluster extends Cluster{
 		thing += " Number of points: " + totalPoints;
 		thing += " Rating: " + loopRating;
 		return thing;
+	}
+
+	public void setPoints(LinkedList<DataPoint> appendedPoints) {
+		points = appendedPoints;
+		
 	}
 }

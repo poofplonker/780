@@ -2,7 +2,7 @@
 
 \usepackage{amsmath}
 \usepackage{mathtools}
-\usepackage{ mathrsfs }
+\usepackage{mathrsfs}
 \usepackage{parskip}
 \usepackage{graphicx}
 \usepackage{hyperref}
@@ -204,7 +204,7 @@ Using this framework, we can say that a point $x$ is not misclassified because o
 \item $m_i$ is a swing voter and the class of $x$ and $m_i$ are the same.
 \end{enumerate}
 
-The probability of the first case is $(1-\alpha_i)$ and the probability of the second is $(\alpha_i(1-p_i))$. Hence, the probability of a certain micro-cluster ensuring a point is mislabelled is $1-\alpha_ip_i$. This means the probability that the next $N$ test cases are not mislabelled due to $m_i$ is $(1-\alpha_ip_i)^N$, and the chances of a single point being mislabelled due to $m_i$ is $1-(1-\alpha_ip_i)^N$. The expected classification error for a whole model is: $(1-\suma_i(1-\alpha_ip_i)^N)$.
+The probability of the first case is $(1-\alpha_i)$ and the probability of the second is $(\alpha_i(1-p_i))$. Hence, the probability of a certain micro-cluster ensuring a point is mislabelled is $1-\alpha_ip_i$. This means the probability that the next $N$ test cases are not mislabelled due to $m_i$ is $(1-\alpha_ip_i)^N$, and the chances of a single point being mislabelled due to $m_i$ is $1-(1-\alpha_ip_i)^N$. The expected classification error for a whole model is: $(1-\sum a_i(1-\alpha_ip_i)^N)$.
 
 This means that if we want to reduce the classification error for the whole model, we can either reduce $\alpha_i$ or reduce $p_i$. In fact, it is this reasoning that led us to split unlabelled micro-clusters in the clustering step: by splitting the micro-cluster, we essentially replace one cluster with high $p_i$ with two with low $p_i$. 
 
@@ -213,6 +213,100 @@ However, if we were to attempt to reduce $\alpha_i$, we could do that by removin
 Unfortunately, there is no tidy theory to deal with this problem. For our purposes, there is a hard limit of micro-clusters eligible to be deleted. Woolam suggested a threshold of no more than 50$\%$ point deletion, however here we allowed arbitrary deletion until the number of micro-clusters is no more than $K$, the number of macro-clusters in a model. 
 
 \section{Using LoOP to evaluate cluster quality}
+
+The previous sections lay out the Label Stream algorithm in its entirety. However, if we are to somehow attempt to use cluster quality measures to increase the classification accuracy of the algorithm, we need a method of evaluating the quality of the micro-clusters we generate. If we could score each micro-cluster based on its quality, then we could weight its contribution to the classification of the point, and hopefully achieve a better classification accuracy. 
+
+Cluster evaluation methods typically use two basic measures. These are intra-cluster density, and inter-cluster separation. For example, Moulavi et al\cite{DBCV}. recently released a paper in which they evaluate cluster quality by scoring a cluster based on these two measures. To evaluate intra-cluster density, they score a cluster as the longest edge in a minimum spanning tree of the cluster, and evaluate the inter-cluster distance by finding the nearest pair of points between two clusters. They can then build an overall score based on these two measures. 
+
+However, evaluating the quality of micro-clusters should not use inter-cluster measures. This is because cluster overlapping is not necessarily a sign of bad clustering. If we take a macro-cluster which contained labelled points of a class, and unlabelled points which are actually of that class, then we will split that cluster into two different micro-clusters at the micro-clustering phase. However, these overlapping clusters are not a problem because they both come from the same underlying class distribution. 
+
+Another viable method to change the micro-clusters is simply to find outliers in a cluster and remove them. Since our clusters centroids are mean based, an outlier in a small cluster can skew the centroid of a cluster significantly. Identification and removal of these points maybe another way 
+
+In this section, we will discuss LoOP, a method which evaluates how likely it is a single point is an outlier within a cluster. After we have explained how this measure works, we will look at how it can be applied to this problem. 
+
+\subsection{LoOP: The Local Outlier Probability Factor}
+
+When trying to determine whether a point is an outlier, many outlier scores only give an arbitrary score which must be interpreted. However, LoOP is innovative in the way that rather than producing an arbitrary score, each point is assigned a probability of being an outlier. This makes the results much easier to interpret. 
+
+The first step is to define a probabilistic distance. Suppose we have a distance measure like euclidean distance, which we denote as $d(x,y)$. Suppose also we have some point we are interested in $o$, and a set of objects $S$. Then we want our probabilistic distance between two a point $o$ and the set of objects $S$ to be have the property:
+
+\[\forall s \in S: P[d(o,s) \leq pdist(o,S)] \geq \phi\]  
+
+where $\phi$ is some constant. Intuitively, what this means is that a sphere around $o$ with a radius $pdist(o,S)$ covers any element in S with probability $\phi$. Now, if we wish to estimate probabilistic density, we can take the inverse of the $pdist$:
+\[pdens(S) = \frac{1}{pdist(o,S)}\]
+
+Now, if we use  $\lambda = \sqrt{2} erf^{-1}(\phi)$ rather than $\phi$, where $erf$ is the gaussian error function, we can interpret $\lambda$ as a multiplier from standard deviation $\sigma$. So for instance,  $\lambda = 1 \Leftrightarrow \phi = 68\%$, and $\lambda = 2 \Leftrightarrow \phi = 95\%$, etc. Now we can define a standard distance between one point $o$ and a cluster of points $S$:
+
+\[\sigma (o,S) = \sqrt{\frac{\sum_{s \in S} d(o,s)^2}{|S|}}\]   
+
+and hence, we can define the probabilistic distance as:
+
+\[pdist(o,S) = \lambda \sigma(o,S)\]
+
+We need to compare the probabilistic distances of each point in a cluster of points in order to evaluate how likely it is that one point is an outlier. In order to do this, we will firstly compare the $pdist$ of a single point to all the $pdist$ of every point in that cluster. For that purpose, we define the Probabilistic Local Outlier Factor (PLOF) to be:
+
+\[PLOF_{\lambda,S}(o) = \frac{pdist(\lambda,o,S)}{E_{s \in S(o)}[pdist(\lambda, s, S)]} - 1\]
+
+where $E$ refers to the expected value.  This PLOF score is not yet probabilistic, and we cannot compare the "outlierness" of different points in different distributions yet. So we need a measure NPLOF, which stands for Normalised Probabilistic Local Outlier Factor. This is defined:
+
+\[NPLOF = \lambda \sqrt{E[(PLOF^2)]}\]
+
+The purpose of this measure is to standardise what constitutes an outlier across different contexts. This could either be within a cluster, or between different clusters. Finally, our measure is still not probabilistic, so we define the LoOP score of such a point to be probabilistic using the Gaussian Error Function as below:
+
+\[LOOP_S(o) = max \{0, erf(\frac{PLOF_{\lambda,S}(o)}{nPLOF\sqrt{2}})\}\]
+
+The resulting LoOP score will be close to 0 for points which are in dense clusters, and close to 1 for points that are density based outliers. 
+
+\subsection{Using LoOP scores to improve Cluster Quality by removal}
+
+One way to improve the quality of a given micro-cluster is to simply remove outliers. The reason that this will improve the quality of the cluster is that when we calculate the centroid of a cluster, we calculate the position of the centroid by averaging the positions of every point in the cluster:
+
+\[\mu_i = \frac{\sum_{x \in X_i}x}{|X_i|}\]
+
+Hence, a single outlier has the possibility to skew the position of the centroid of a cluster. Of course, outliers can cancel each other out, but simply removing an outlier from a cluster will not make the cluster quality worse. 
+
+The other question to ask is why LoOP is more appropriate than other outlier factors like LOF. The reason why we prefer LoOP over other outlier measures is that LoOP gives us a way to standardise "outlierness" between clusters. For instance, if a cluster has four very close points and one point further away, that point may be interpreted as an outlier. However, when we consider the distances between points in other clusters, it may become apparent that in the context of the dataset that one further away point is not an outlier. 
+
+The procedure for calculating the LoOP score for every point is as follows:
+
+\begin{enumerate}
+\item We calculate the PLOF for every point in relation to the cluster it is in. 
+\item We then calculate the NPLOF of the entire model by calculating the expected value of every PLOF in every cluster, as we saw in the description of LoOp. 
+\item Now we can calculate the LoOP score of every point. 
+\end{enumerate}
+
+We will remove a point given it has a LoOP score greater than 0.5, with the LoOP calculations done with $\lambda = 2$. We can interpret this as removing a point if it is more likely than not that it is outside 2 standard deviations. 
+
+\subsection{Using LoOP scores to predict cluster quality}
+
+A more uncertain method of improving the classification accuracy of the algorithm is to use the LoOP scores of individual points within a cluster to attempt to score the whole cluster, and then use that score to bias the classification process towards micro-clusters that have a higher cluster quality. Provided we had an appropriate measure, we could simply weight each micro-cluster by its quality when considering it in classification. Let $\tau_i$ denote the cluster quality of micro-cluster $i$. Then we can change our classification influence function to be:
+
+\[W(i,j) = e^{-(\frac{||x_i-x_j||}{2\sigma^2})}\rho_j\tau_i\]
+
+We need our cluster quality measure to be an decimal value between 0 and 1, where 0 denotes that the micro-cluster should be entirely disregarded. Fortunately, LoOP ensures that all points are given a LoOP score between 0 and 1. So what function should we use to aggregate the LoOP scores of our clusters?
+
+The minimum and maximum functions are candidates, but not very good ones. Suppose for instance we let the LoOP score of a cluster be:
+
+\[ \tau_i = 1-max(s \in i)\]
+
+If a cluster had a point that was a certain outlier, say a $99\%$ outlier, $\tau_i = 0.01$, so that would mean we  effectively ignore the entire cluster. This is not a very good idea, because the cluster may be very dense and informative aside from that one outlier. Simply put, a function based on the value of one point is probably not going to yield a good result. 
+
+Another possible candidate is the average of the LoOP scores. However, here we have a problem of dampening, where due to the fact all clusters will consist primarily of low LoOP score points, we will be unable to distinguish significantly between good and poor quality clusters. For instance, suppose a clusters is $20\%$ heavy outliers. If these outliers are all corroborating to distort the centroid of the cluster, this could seriously damage the quality of this cluster. However, using a measure like:
+
+\[\tau_i = 1- \frac{\sum_{x \in X_i}x}{|X_i|}\]
+
+will yield us $\tau_i = 0.8$, not a significant enough distinction between high and low quality clusters. 
+
+The solution to both these problems is to use an average of the points in the cluster which have the highest outlier factor. It makes sense that we can score the whole clusters quality on these few points, because it only takes a few points to entirely distort the centroid of the cluster. So, in order to determine cluster quality using LoOP score, we:
+
+\begin{enumerate}
+\item Find the LoOP scores of all points in each cluster. 
+\item We then, for each cluster $i$, sort the points by score. 
+\item We take the highest $10\%$ of these scores, and average them $Av(i)$. 
+\item $\tau_i = 1 - Av(i)$. 
+\end{enumerate}
+ 
+
 \section{Experiments}
 Experiments were conducted on a variety of datasets. Since the aim of the alterations to the LabelStream algorithm was to increase the classification accuracy of the algorithm, no experiment tracked the relative point classification rate of the algorithm with and without the LoOP density score. Subsequently, the hardware the tests were performed on is not particularly relevant, however for completeness they were performed on a MacBook Pro with a 2.5GHz processor and 4GB of memory. 
 
@@ -300,6 +394,9 @@ Zhou, Dengyong, et al. "Learning with local and global consistency." Advances in
 
 \bibitem{Inject}
 Tumer, Kagan, and Joydeep Ghosh. "Error correlation and error reduction in ensemble classifiers." Connection science 8.3-4 (1996): 385-404.
+
+\bibitem{DBCV}
+Moulavi, Davoud, et al. "Density-based clustering validation." Proceedings of the 14th SIAM International Conference on Data Mining (SDM), Philadelphia, PA. 2014.
 
 \end{thebibliography}
 \end{document}

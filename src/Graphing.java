@@ -32,14 +32,14 @@ import org.jfree.data.xy.XYSeriesCollection;
 
 public class Graphing {
 	
-	public static void exportGraph(LinkedList<Double> results1, LinkedList<Double> results2,LinkedList<Double> error1, LinkedList<Double> error2, ArrayList<Double> loop1, ArrayList<Double> loop2, int errorInterval, String title,String filename) throws FileNotFoundException, IOException{
-		XYDataset data = genData(results1, results2, error1, error2, errorInterval);
-		double minValue = getMinValue(results1, results2);
-		double maxValue = getMaxValue(results1, results2);
-		maxValue += getMaxValue(error1,error2);
-		minValue -= getMaxValue(error1, error2);
+	public static void exportGraph(LinkedList<Double> results1, LinkedList<Double> results2,LinkedList<Double> results3,LinkedList<Double> error1, LinkedList<Double> error2,LinkedList<Double> error3, ArrayList<Double> loop1, ArrayList<Double> loop2,ArrayList<Double> loop3, int errorInterval, String title,String filename) throws FileNotFoundException, IOException{
+		XYDataset data = genData(results1, results2, results3, error1, error2,error3, errorInterval);
+		double minValue = getMinValue(results1, results2, results3);
+		double maxValue = getMaxValue(results1, results2, results3);
+		maxValue += getMaxValue(error1,error2, error3);
+		minValue -= getMaxValue(error1, error2, error3);
 		JFreeChart chart = createLineChart(data, title, minValue,maxValue);
-		BufferedImage chartImage = chart.createBufferedImage( 300, 300, null); 
+		BufferedImage chartImage = chart.createBufferedImage( 800, 800, null); 
 		ImageIO.write( chartImage, "png", new FileOutputStream(filename +"Line.png"));
 		
 		BoxAndWhiskerCategoryDataset dataset2 = genBoxData(loop1, loop2, title);
@@ -49,7 +49,7 @@ public class Graphing {
 		
 	}
 	
-	private static double getMinValue(LinkedList<Double> results1, LinkedList<Double> results2){
+	private static double getMinValue(LinkedList<Double> results1, LinkedList<Double> results2, LinkedList<Double> results3){
 		double min = 1.1;
 		for(double d: results1){
 			if(min > d){
@@ -61,10 +61,15 @@ public class Graphing {
 				min = d;
 			}
 		}
-		return (min-0.05 > 1) ? 0: min-0.05; 
+		for(double d: results3){
+			if(min > d){
+				min = d;
+			}
+		}
+		return (min > 1) ? 0: min; 
 	}
 	
-	private static double getMaxValue(LinkedList<Double> results1, LinkedList<Double> results2){
+	private static double getMaxValue(LinkedList<Double> results1, LinkedList<Double> results2, LinkedList<Double> results3){
 		double max = 0;
 		for(double d: results1){
 			if(max < d){
@@ -76,9 +81,14 @@ public class Graphing {
 				max = d;
 			}
 		}
-		return (max+0.05 > 1) ? 1: max+0.05; 
+		for(double d: results3){
+			if(max < d){
+				max = d;
+			}
+		}
+		return (max > 1) ? 1: max; 
 	}
-	private static XYDataset genData(LinkedList<Double> results1, LinkedList<Double> results2, LinkedList<Double> error1, LinkedList<Double> error2,int errorInterval){
+	private static XYDataset genData(LinkedList<Double> results1, LinkedList<Double> results2, LinkedList<Double> results3, LinkedList<Double> error1, LinkedList<Double> error2,LinkedList<Double> error3,int errorInterval){
 		XYIntervalSeries bench = new XYIntervalSeries("Without Cluster Rating");
 		int counter = 0;
 		for(int i = 0; i < results1.size(); i++){
@@ -89,10 +99,10 @@ public class Graphing {
 				counter++;
 			}
 		}
-		XYIntervalSeries bench2 = new XYIntervalSeries("With Cluster Rating");
+		XYIntervalSeries bench2 = new XYIntervalSeries("With Removal");
 		counter = 0;
 		for(int i = 0; i < results2.size(); i++){
-			if((i%errorInterval) != errorInterval/2){
+			if((i%errorInterval) != 2*errorInterval/3){
 				bench2.add(i, i, i,results2.get(i),results2.get(i),results2.get(i));
 			}
 			else{
@@ -100,9 +110,23 @@ public class Graphing {
 				counter++;
 			}
 		}
+		XYIntervalSeries bench3 = new XYIntervalSeries("With Scoring");
+		counter = 0;
+		for(int i = 0; i < results3.size(); i++){
+			if((i%errorInterval) != errorInterval/3){
+				bench3.add(i, i, i,results3.get(i),results3.get(i),results3.get(i));
+			}
+			else{
+				if(counter < error3.size()){
+					bench3.add(i,i,i,results3.get(i), results3.get(i)-error3.get(counter), results3.get(i)+error3.get(counter));
+					counter++;
+				}
+			}
+		}
 		XYIntervalSeriesCollection d = new XYIntervalSeriesCollection();
 		d.addSeries(bench);
 		d.addSeries(bench2);
+		d.addSeries(bench3);
 		return d;
 	}
 	
@@ -116,13 +140,15 @@ public class Graphing {
 	private static JFreeChart createLineChart(XYDataset data, String title,double minValue, double maxValue){
         NumberAxis range = new NumberAxis("Number of chunks processed");
         NumberAxis domain = new NumberAxis("Cumulative accuracy of predictions");
-        domain.setRange(minValue, maxValue);
+        domain.setRange(minValue, 1);
         XYErrorRenderer error = new XYErrorRenderer();
         error.setSeriesShapesVisible(0,false);
         error.setSeriesShapesVisible(1,false);
+        error.setSeriesShapesVisible(2,false);
         error.setSeriesLinesVisible(0,true);
         error.setSeriesLinesVisible(1,true);
-        
+        error.setSeriesLinesVisible(2,true);
+        error.setSeriesPaint(2, Color.BLACK);
         XYPlot xyPlot = new XYPlot(data,range,domain,error);
 		final JFreeChart chart = new JFreeChart(title,xyPlot);
 		chart.setBackgroundPaint(Color.white);

@@ -73,8 +73,10 @@ public class PseudoPoint implements Comparable{
 			}else if(this.label > ((PseudoPoint)x).getLabel()){
 				return -1;
 			}
+			return 0;
 		}
 		return 0;
+		
 	}
 	public String toString(){
 		String thing = "";

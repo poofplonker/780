@@ -68,22 +68,26 @@ public class MacroCluster extends Cluster{
 	public boolean removePoint(DataPoint d){
 		if (d.isLabeled()){
 			if(!labelledPoints.remove(d)){
-				return false;
+				System.out.println("Labelled point error: Point was from" + d.getClusterIndex() + " error in cluster " + clusterIndex );
+			}else{
+				labelledPointCount--;
 			}
-			labelledPointCount--;
 
 			//calcADC();
 		}else{
 			if(!unLabelledPoints.remove(d)){
-				return false;
+				//System.out.println("unlabelled point error: Point was from" + d.getClusterIndex() + " error in cluster " + clusterIndex );
+			}else{
+				predictedClassCounter[d.getPredictedLabel()+1]--;
 			}
-			predictedClassCounter[d.getPredictedLabel()+1]--;
 		}
 		classCounter[d.getLabel()+1]--;
 		if(!points.remove(d)){
+			//System.out.println("point error: Point was from" + d.getClusterIndex() + " error in cluster " + clusterIndex );
 			return false;
+		}else{
+			totalPoints--;
 		}
-		totalPoints--;
 
 		return true;
 	}
