@@ -95,7 +95,8 @@ public class Graphing {
 			if((i % errorInterval)!= 0){
 				bench.add(i, i, i,results1.get(i),results1.get(i),results1.get(i));
 			}else{
-				bench.add(i,i,i,results1.get(i), results1.get(i)-error1.get(counter), results1.get(i)+error1.get(counter));
+				double err = error1.get(counter)/2;
+				bench.add(i,i,i,results1.get(i), results1.get(i)-err, results1.get(i)+err);
 				counter++;
 			}
 		}
@@ -106,7 +107,8 @@ public class Graphing {
 				bench2.add(i, i, i,results2.get(i),results2.get(i),results2.get(i));
 			}
 			else{
-				bench2.add(i,i,i,results2.get(i), results2.get(i)-error2.get(counter), results2.get(i)+error2.get(counter));
+				double err = error2.get(counter)/2;
+				bench2.add(i,i,i,results2.get(i), results2.get(i)-err, results2.get(i)+err);
 				counter++;
 			}
 		}
@@ -118,7 +120,8 @@ public class Graphing {
 			}
 			else{
 				if(counter < error3.size()){
-					bench3.add(i,i,i,results3.get(i), results3.get(i)-error3.get(counter), results3.get(i)+error3.get(counter));
+					double err = error3.get(counter)/2;
+					bench3.add(i,i,i,results3.get(i), results3.get(i)-err, results3.get(i)+err);
 					counter++;
 				}
 			}

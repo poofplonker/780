@@ -13,15 +13,15 @@ import cern.jet.random.engine.MersenneTwister;
 
 public class Main {
 	
-	private static final int CHUNKSIZE = 1600;
+	private static final int CHUNKSIZE = 1000;
 	private static final int L = 6;
 	private static final int K = 50;
-	private static final int TESTNUMBER = 20;
-	private static final int ITERATIONS = 200;
+	private static final int TESTNUMBER = 5;
+	private static final int ITERATIONS = 150;
 	private static final double PERCENTUNLABELLED = 0.9;
-	private static final String OUTPUTGRAPHNAME = "output/KDD";
-	private static final String GRAPHTITLE = "KDDCup DataSet";
-	private static final boolean SYNTHETIC = false;
+	private static final String OUTPUTGRAPHNAME = "output/SynD";
+	private static final String GRAPHTITLE = "SynD DataSet";
+	private static final boolean SYNTHETIC = true;
 	private static final int ERRORINTERVAL = 25;
 	private static final int SYNTHETICLENGTH = 21;
 	private static final String FILE1 = "input/kddcup.data_10_percent_corrected";

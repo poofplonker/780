@@ -14,17 +14,36 @@
 \date{October 28, 2014}
 \maketitle
 
-\section{Introduction}
-\section{Related Work}
-\section{Label Stream: An Algorithm for Classifying Stream Data}
+\section*{Introduction}
+
+Recent developments in data collection techniques have now left researchers and businesses drowning in data. This has meant that data mining often cannot be performed in the static manner in which it once was. Instead, we need novel techniques to handle not only the incredible volume of data arriving, but also the fact that the nature of this data can change over time. Previous data stream classification techniques frequently relied on entirely labelled data \cite{Incremental, Ens}. However, due to the volume of current data streams, completely labelling a data stream may be simply infeasible. For instance, the amount of transactions going through a bank are far too voluminous for even a large team of experts to manually classify every single transaction. In response, a new collection of techniques have arisen which focus on labelling only a small part of the data stream, and using this limited information to classify the remainder of the stream\cite{LabStr,Zhang}. 
+
+Sensitive to these concerns, in this paper we will attempt to improve the classification accuracy of  Label Stream, a current semi-supervised approach by scrutinising the quality of the clustering it performs. It is by using this approach that we hope to improve the classification accuracy of the algorithm, and hence enable streams to be accurately labelled even with even smaller amounts of labelled data. We will evaluate the quality of the clustering performed by a model using LoOP, the Local Outlier Probability score \cite{Loop}, and attempt to improve accuracy by either pruning outliers or reducing the influence of poor quality clusters. 
+
+The structure of the paper is as follows. In the following section, we will discuss the various ways researchers have confronted the problem of classifying data streams with limited labelled data. In Section 3, we will review how a model is built on a partially labelled data chunk in the Label Stream algorithm, and in Section 4 we will investigate the function of the ensemble in the Label Stream algorithm. Then in Section 5 we will investigate the Local Outlier Probability and how we can use it to evaluate clusters. In Section 6 we will review experimental results on several data sets. Finally in Section 7 we will conclude and discuss future work. 
+
+\section*{Related Work}
+
+There have been several different approaches to handling the problem of semi-supervised data stream classification, and many of the main approaches have been adapted to attempt to handle the problems of sparse labelled data. 
+
+One of these approaches is the REDLLA algorithm, developed by Li et al\cite{Li}. This algorithm adapts the CVFDT (Concept-adapting Very Fast Decision Tree)\cite{CVFDT}, a decision tree approach to classifying a data stream, to handle semi-labelled data streams. One of the strengths of this approach is that because a decision tree can store a great amount of classification information, REDDLA is especially adept at handling recurring concept drift. However, the trade off for this benefit is that the decision tree can occupy a lot of space in memory, as noted by in the limitations section by the authors. 
+
+Another approach is was developed by Zhang et al.\cite{Zhang}, which involves a slightly different framework. Here, relational k-mean clustering is combined with a Support Vector Machine algorithm to create a semi-supervised technique which copes admirably with a lack of labels in the data stream. This algorithm greatly out-performed previous approaches based on Support Vector Machines when concept drift and partially labelled streams were involved. 
+
+Finally, as we will see, the Label Stream algorithm developed by Woolam et al. \cite{LabStr} uses a semi-supervised K-means clustering technique on top of a label propagation algorithm to classify unlabelled clusters. Using an ensemble gives a natural way to detect concept drift without using too much memory, but is less appropriate in cases where there is recurring drift. However, it does a fixed amount of memory is devoted to tracking concept drift. 
+
+These approaches all have something in common; they all use clustering to associate unlabelled points with labelled points, and then they all apply different supervised techniques to leverage what little labelled data they possess for predictions on new unlabelled points. 
+
+
+\section*{Label Stream: An Algorithm for Classifying Stream Data}
 
 The algorithm that I chose to attempt to improve was one developed by researchers at the University of Dallas. The Label Stream algorithm was published in 2009 by Clay Woolam, Mohammad M. Masud and Latifur Khan.\cite{LabStr}
 
-The basic framework of the algorithm is to use an ensemble of models to predict which class a data point belongs to. The stream is broken into chunks, and each model is built from the data in a partially labelled chunk. When a new model is created, we simply need to update our ensemble by evicting the model which is performing worst on the new labelled data, as well as refining the current models in the ensemble based on the labelled data seen in the new chunk. 
-
-\includegraphics[scale = 0.4]{LabStrOverview}
-\cite{TechRep}
-
+The basic framework of the algorithm is to use an ensemble of models to predict which class a data point belongs to. The stream is broken into chunks, and each model is built from the data in a partially labelled chunk.  When a new model is created, we simply need to update our ensemble by evicting the model which is performing worst on the new labelled data, as well as refining the current models in the ensemble based on the labelled data seen in the new chunk. 
+\begin{figure}
+	\includegraphics[scale = 0.4]{LabStrOverview}
+	\caption{An overview of the flow of control in the Label Stream algorithm \cite{TechRep}}
+\end{figure}
 
 \section{Training a Model}
 
@@ -41,17 +60,19 @@ Secondly, we then split those macro-clusters into class label pure micro-cluster
  
  \[ O_{Dist} = \sum_{i=1}^K \sum_{x\in X_i}|| x - \mu_i||^2 \]
  
-This is an unsupervised technique, but we would like to take advantage of the fact that a certain percentage of our data chunk have labels associated. To do this, we will modify unsupervised K-means by adding an additional factor to the objective function. This is called by Woolam et al. MCIK-means, which stands for Minimising Cluster Impurity for K-means. \cite{LabStr} The objective function for this variation on K-means is:
+where $K$ is the number of clusters, $X_i$ is cluster $i$, $x$ is a data point and $\mu_i$ is the centroid of cluster $i$.This is an unsupervised technique, but we would like to take advantage of the fact that a certain percentage of our data chunk have labels associated. To do this, we will modify unsupervised K-means by adding an additional factor to the objective function. This is called by Woolam et al. MCIK-means, which stands for Minimising Cluster Impurity for K-means. \cite{LabStr} The objective function for this variation on K-means is:
  
  \[ O_{MCIKMeans} = \sum_{i=1}^K \sum_{x\in X_i}|| x - \mu_i||^2(1 + Ent_iADC_i)\]
-  
-Firstly, we need to define entropy. Entropy is a measure which is normally used to describe how many bits are necessary to convey information, but is useful in this context as a measure of purity of clusters. The formula for calculating the entropy of a cluster \(i\) is:
+
+This is the same as the previous function except for $Ent_i$, the entropy of cluster $i$ and $ADC_i$ is the aggregated dissimilarity count. However, to understand this formula, we need to define these terms. 
+Entropy is a measure which is normally used to describe how many bits are necessary to convey information, but is useful in this context as a measure of purity of clusters. The formula for calculating the entropy of a cluster \(i\) is:
  
 \[Ent_i = \sum_{c=0}^C(-p_i^clog(p_i^c))\] 
 
 where \(p_i^c\) is the prior probability of a point in the cluster \(i\) being of class \(c\), i.e.:
 \[p_i^c = \frac{|X_i(c)|}{|X_i|}\] 
 
+where $|X_i(c)|$ is the number of points of class $c$ in cluster $i$ and $|X_i|$ is the number of points in cluster $i$. 
 Entropy will give a higher penalty to impure clusters, however using only entropy will mean that every point has the same penalty related to impurity. This is a problem when we try and minimise our cluster impurity. Suppose for instance we have cluster A, with 9 points of label 1, and cluster B, with 3 points of label 1. Then, suppose we add 7 points of label 2. 
 
 The best arrangement we can hope for is for cluster A to remained untouched, and cluster B to take all the points of label 2, resulting in an entropy of 0.26. However, what will happen when we incrementally add each point? Well, in the first instance, because cluster A is larger, a point of label 2 will be assigned to it. Now because cluster A is impure, we will continue adding points to cluster A, and our final configuration will be cluster A with 16 points in total, 9 of class 1 and  7 of cluster 2, and an entropy of 0.29, and cluster B as it was with an entropy of 0. This is not the optimal configuration!
@@ -62,11 +83,11 @@ To solve this problem, we introduce a measure of cluster impurity called Dissimi
 
 Basically, the dissimilarity count of a single point is the number of points in the cluster with a class label other than the class of that point. In our previous example, using Dissimilarity Count, we would place all the points of label 2 into cluster B, because the dissimilarity count for all points of label 2 would stay the constant 3, for all the points of label 1 which were there before. 
 
-The Aggregated Dissimilarity Count, ADC, is simply the sum of all dissimilarity counts for each point in a cluster. 
+The Aggregated Dissimilarity Count, $ADC_i$, is simply the sum of all dissimilarity counts for each point in a cluster $i$. 
 
 /* A graph demonstrating the above examples would help */
 
-An outstanding issue is whether to consider unlabelled points as a distinct class or not. In the original Label Stream paper, it is clear that unlabelled points are not to be considered in the Dissimilarity count, as they explicitly state that if a point is unlabelled, \(DC(x,i) = 0\).\cite{LabStr} However, in Khan et al. review of the same algorithm, it is more equivocal, and the paper seems to suggest that they did consider unlabelled points as a distinct class for the purposes of calculating the dissimilarity count. For my experiments, I have decided to uphold the convention of the dissimilarity count of an unlabelled point being zero.  
+An outstanding issue is whether to consider unlabelled points as a distinct class or not. In the original Label Stream paper, it is clear that unlabelled points are not to be considered in the Dissimilarity count, as they explicitly state that if a point is unlabelled, \(DC(x,i) = 0\).\cite{LabStr} However, in Khan et al. review of the same algorithm, it is more equivocal, and the paper seems to suggest that they did consider unlabelled points as a distinct class for the purposes of calculating the dissimilarity count \cite{TechRep}. For my experiments, I have decided to adopt the more recent approach of considering unlabelled points as a distinct class, and hence they have a dissimiliarity score. 
  
  \subsubsection{Expectation Minimisation} 
  In order to generate these clusters, firstly we need to initialise our clusters. This initialisation can be have a great effect on the quality of the subsequent clustering. Firstly, we take all the labelled points in our data chunk and calculate the prior probability of a certain class appearing in that chunk. Then, for each class, we calculate the proportion of the K clusters to be generated which should be initialised to a point of that class. This calculation is:
@@ -397,6 +418,21 @@ Tumer, Kagan, and Joydeep Ghosh. "Error correlation and error reduction in ensem
 
 \bibitem{DBCV}
 Moulavi, Davoud, et al. "Density-based clustering validation." Proceedings of the 14th SIAM International Conference on Data Mining (SDM), Philadelphia, PA. 2014.
+
+\bibitem{CVFDT}
+Hulten, Geoff, Laurie Spencer, and Pedro Domingos. "Mining time-changing data streams." Proceedings of the seventh ACM SIGKDD international conference on Knowledge discovery and data mining. ACM, 2001.
+
+\bibitem{Incremental}
+Domingos, Pedro, and Geoff Hulten. "Mining high-speed data streams." Proceedings of the sixth ACM SIGKDD international conference on Knowledge discovery and data mining. ACM, 2000.
+
+\bibitem{Ens}
+Wang, Haixun, et al. "Mining concept-drifting data streams using ensemble classifiers." Proceedings of the ninth ACM SIGKDD international conference on Knowledge discovery and data mining. ACM, 2003.
+
+\bibitem{Li}
+Li, Peipei, Xindong Wu, and Xuegang Hu. "Mining recurring concept drifts with limited labeled streaming data." ACM Transactions on Intelligent Systems and Technology (TIST) 3.2 (2012): 29.
+
+\bibitem{Loop}
+Kriegel, Hans-Peter, et al. "LoOP: local outlier probabilities." Proceedings of the 18th ACM conference on Information and knowledge management. ACM, 2009.
 
 \end{thebibliography}
 \end{document}
