@@ -13,7 +13,7 @@ import cern.jet.random.engine.MersenneTwister;
 
 public class Main {
 	
-	private static final int CHUNKSIZE = 1000;
+	private static final int CHUNKSIZE = 1600;
 	private static final int L = 6;
 	private static final int K = 50;
 	private static final int TESTNUMBER = 20;
@@ -26,7 +26,7 @@ public class Main {
 	private static final int SYNTHETICLENGTH = 21;
 	private static final String FILE1 = "input/kddcup.data_10_percent_corrected";
 	private static final String FILE2 = "input/covtype.data";
-	private static final String FILE3 = "input/2classps.csv";
+	private static final String FILE3 = "input/2classpsbig.csv";
 
 	
 	public static void main(String[] args) throws IOException {
@@ -128,7 +128,7 @@ public class Main {
 	public static LinkedList<Double> ReaSC(int l, int k, double percentUnlabelled, int chunSize, boolean synthetic, boolean removal,boolean ratingCluster, ArrayList<Double> loopSum) throws IOException{
 		BufferedReader br;
 		if(!synthetic){
-			br = new BufferedReader(new FileReader(FILE1));
+			br = new BufferedReader(new FileReader(FILE3));
 		}else{
 			br = null;
 		}
