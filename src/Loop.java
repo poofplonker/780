@@ -63,6 +63,7 @@ public class Loop {
 				}
 				nPlof += plof*plof;
 				counter++;
+				d.setPlof(plof);
 			}
 		}
 		nPlof /= counter;

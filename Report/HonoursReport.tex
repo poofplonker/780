@@ -37,17 +37,17 @@ These approaches all have something in common; they all use clustering to associ
 
 \section*{Label Stream: An Algorithm for Classifying Stream Data}
 
-The algorithm that I chose to attempt to improve was one developed by researchers at the University of Dallas. The Label Stream algorithm was published in 2009 by Clay Woolam, Mohammad M. Masud and Latifur Khan.\cite{LabStr}
+The algorithm that I chose to attempt to improve was one developed by researchers at the University of Dallas. The Label Stream algorithm was published in 2009 by Clay Woolam, Mohammad M. Masud and Latifur Khan\cite{LabStr}.
 
 The basic framework of the algorithm is to use an ensemble of models to predict which class a data point belongs to. The stream is broken into chunks, and each model is built from the data in a partially labelled chunk.  When a new model is created, we simply need to update our ensemble by evicting the model which is performing worst on the new labelled data, as well as refining the current models in the ensemble based on the labelled data seen in the new chunk. 
 \begin{figure}
 	\includegraphics[scale = 0.4]{LabStrOverview}
-	\caption{An overview of the flow of control in the Label Stream algorithm \cite{TechRep}}
+	\caption{An overview of the flow of control in the Label Stream algorithm \cite{TechRep}}.
 \end{figure}
 
 \section{Training a Model}
 
-We can train a model from a data chunk as soon as some arbitrary percentage of the data points in that chunk have been manually labelled. Experimental testing by Woolam et al. shows that Label Stream performs as well as many previous stream classification algorithms with as few as \(10\%\) labelled points.\cite{LabStr}
+We can train a model from a data chunk as soon as some arbitrary percentage of the data points in that chunk have been manually labelled. Experimental testing by Woolam et al. shows that Label Stream performs as well as many previous stream classification algorithms with as few as \(10\%\) labelled points\cite{LabStr}.
 
 Training a model based on a chunk of data consists of three steps. Firstly, we cluster the data into large macro-clusters based on a modified version of K-Means clustering, in which we try not only to minimise intra-cluster distance like in standard K-means, but also minimise cluster impurity by taking into account the entropy of clusters as a dissimilarity measure in which clusters with points of different labels are punished. 
 
@@ -60,7 +60,7 @@ Secondly, we then split those macro-clusters into class label pure micro-cluster
  
  \[ O_{Dist} = \sum_{i=1}^K \sum_{x\in X_i}|| x - \mu_i||^2 \]
  
-where $K$ is the number of clusters, $X_i$ is cluster $i$, $x$ is a data point and $\mu_i$ is the centroid of cluster $i$.This is an unsupervised technique, but we would like to take advantage of the fact that a certain percentage of our data chunk have labels associated. To do this, we will modify unsupervised K-means by adding an additional factor to the objective function. This is called by Woolam et al. MCIK-means, which stands for Minimising Cluster Impurity for K-means. \cite{LabStr} The objective function for this variation on K-means is:
+where $K$ is the number of clusters, $X_i$ is cluster $i$, $x$ is a data point and $\mu_i$ is the centroid of cluster $i$.This is an unsupervised technique, but we would like to take advantage of the fact that a certain percentage of our data chunk have labels associated. To do this, we will modify unsupervised K-means by adding an additional factor to the objective function. This is called by Woolam et al. MCIK-means, which stands for Minimising Cluster Impurity for K-means \cite{LabStr}. The objective function for this variation on K-means is:
  
  \[ O_{MCIKMeans} = \sum_{i=1}^K \sum_{x\in X_i}|| x - \mu_i||^2(1 + Ent_iADC_i)\]
 
@@ -88,8 +88,14 @@ The Aggregated Dissimilarity Count, $ADC_i$, is simply the sum of all dissimilar
 /* A graph demonstrating the above examples would help */
 
 An outstanding issue is whether to consider unlabelled points as a distinct class or not. In the original Label Stream paper, it is clear that unlabelled points are not to be considered in the Dissimilarity count, as they explicitly state that if a point is unlabelled, \(DC(x,i) = 0\).\cite{LabStr} However, in Khan et al. review of the same algorithm, it is more equivocal, and the paper seems to suggest that they did consider unlabelled points as a distinct class for the purposes of calculating the dissimilarity count \cite{TechRep}. For my experiments, I have decided to adopt the more recent approach of considering unlabelled points as a distinct class, and hence they have a dissimiliarity score. 
+
+\begin{figure}
+	\centering
+	\includegraphics[scale=0.3]{SynDUnlabelled}
+	\caption{Considering unlabelled points as a distinct class for the purposes of dissimilarity count slightly improves classification accuracy.}
+\end{figure}
  
- \subsubsection{Expectation Minimisation} 
+ \subsubsection*{Expectation Minimisation} 
  In order to generate these clusters, firstly we need to initialise our clusters. This initialisation can be have a great effect on the quality of the subsequent clustering. Firstly, we take all the labelled points in our data chunk and calculate the prior probability of a certain class appearing in that chunk. Then, for each class, we calculate the proportion of the K clusters to be generated which should be initialised to a point of that class. This calculation is:
  
 Number of clusters initialised to class \(i  = p_i^cK\) 
@@ -100,15 +106,15 @@ With the clusters initialised, we can now apply Expectation Minimisation to find
 
  \[O_{MCIKMeans}(x) = || x - \mu_i||^2(1 + Ent_iDC_i(x)) \]
  
-The value of the overall objective function depends on the order by which we add points from the chunk to the clusters. If we were to attempt to try all possible orderings of points, this step would be computationally intractable. Instead, we can randomly shuffle the points. This will not guarantee that the cluster converges to the global minimum for the objective function for MCI K-means, but the algorithm will converge in relatively few iterations. 
+The value of the overall objective function depends on the order by which we add points from the chunk to the clusters. If we were to attempt to try all possible orderings of points, this step would be computationally intractable, with all possible combinations constituting $S!$ permutations where $S$ is the size of the data chunk.  Instead, we can randomly shuffle the points. This approach is called the Iterative Control Method, and its convergence is discussed in \cite{ICM} This will not guarantee that the cluster converges to the global minimum for the objective function for MCI K-means, but the algorithm will converge in relatively few iterations. Masud et al. report that where $S = 1000$, the EM algorithm converges in roughly 10 iterations, and the growth of the iteration count is sub-linear with respect to the growth of $S$.
 
 The Minimisation step is to simply recalculate the centroid of each cluster, \(\mu_i\), by averaging all the points now in that cluster. The calculation for that step is: 
 
 \[\mu_i = \frac{\sum_{x \in X_i}x}{|X_i|}\]
 
-We then repeat these steps until the convergence condition is met. We consider the algorithm to have converged if no single point has changed cluster after the point re-assignment phase. This idea of shuffling points randomly and this convergence condition is called the Iterative Control Method, which is guaranteed to converge.\cite{ICM}  
+We then repeat these steps until the convergence condition is met. We consider the algorithm to have converged if no single point has changed cluster after the point re-assignment phase, as per the original specification of ICM \cite{ICM}.
  
- \subsection{The Micro-Clustering Step}
+\subsection*{The Micro-Clustering Step}
  
 Once the macro-clustering step is complete, we will have \(K\) macro-clusters which may or may not be class pure. Our next step is to break these macro-clusters into micro-clusters which are class pure. The procedure is rather simple based on what is considered 'pure':
 
@@ -119,33 +125,34 @@ Once the macro-clustering step is complete, we will have \(K\) macro-clusters wh
 \item Fourthly, if we have a micro-cluster which only contains unlabelled points, we will further subdivide that micro-cluster into micro-clusters based on the predicted class labels of those unlabelled points.  
 \end{enumerate}
 
-The reason we split these macro-clusters into micro-clusters is so that we can make definitive statements about the labels of the labelled micro-clusters. If this is the goal of the splitting, we might ask why we split unlabelled micro-clusters based on their predicted classes. If an unlabelled micro-cluster is constituted of two underlying classes, which have some geometric division, hopefully our predictions from previous models will be able to detect this. If we can successfully split this micro-cluster, the quality of our label propagation will increase greatly. An example is given in this figure taken from Woolam et al.\cite{LabStr}
-
-\includegraphics[scale = 0.7]{ClusterSplitting}
-
+The reason we split these macro-clusters into micro-clusters is so that we can make definitive statements about the labels of the labelled micro-clusters. If this is the goal of the splitting, we might ask why we split unlabelled micro-clusters based on their predicted classes. If an unlabelled micro-cluster is constituted of two underlying classes, which have some geometric division, hopefully our predictions from previous models will be able to detect this. If we can successfully split this micro-cluster, the quality of our label propagation will increase greatly. An example is given in this figure taken from Woolam et al\cite{LabStr}.
+\begin{figure}
+	\includegraphics[scale = 0.7]{ClusterSplitting}
+	\caption{An example of how to split macro-clusters into micro-clusters}
+\end{figure}
 Once we have finally decomposed our macro-clusters into micro-clusters, we won't store the complete micro-cluster, because we have no use for the complete listing of points in the micro-cluster. In the Label Stream algorithm, three basic pieces of information are stored about the micro-cluster. However, at this point, we will calculate a measure of cluster quality based on the LoOP measure, explained later:
 \begin{enumerate}
 \item The centroid of the micro-cluster, \(\mu\)
 \item The weight of the micro-cluster, which is simply the number of points it contains, \(\rho\)
 \item The label of the micro-cluster. If the micro-cluster contains only unlabelled points,  
-\item In addition, we will store the LoOP score of the cluster. 
+\item In addition, we will store the LoOP score of the cluster.
 \end{enumerate}
 
-This summary of the micro-cluster is called a pseudo-point. However, at the moment, all the micro-clusters which had no labelled points in them have no label! Hence, we move on to the third phase of our label propagation. 
+This summary of the micro-cluster is called a pseudo-point, however I will continue to refer to them as micro-clusters for clarity. However, at the moment, all the micro-clusters which had no labelled points in them have no label! Hence, we move on to the third phase of our label propagation. 
 
-\subsection{Label Propagation}
+\subsection*{Label Propagation}
 
-In order to label our unlabelled micro-clusters, we will use a label propagation technique originally devised by Zhou et al.\cite{LabProp}. Their basic technique is to build a complete graph where each micro-cluster is and each edge is a measure of weight or influence that one micro-cluster has on another. The influence in that technique that \(i\) exhibits on \(j\) is based on the Gaussian Kernel Function:
+In order to label our unlabelled micro-clusters, we will use a label propagation technique originally devised by Zhou et al\cite{LabProp}. Their basic technique is to build a complete graph where each micro-cluster is and each edge is a measure of weight or influence that one micro-cluster has on another. The influence in that technique that \(i\) exhibits on \(j\) is based on the Gaussian Kernel Function:
 
-\[W_{i,j} = e^{-(\frac{||x_i-x_j||}{2\sigma^2})}\]
+\[W_{i,j} = e^{-(\frac{||\mu_i-\mu_j||}{2\sigma^2})}\]
 
-Where \(x_i\) and \(x_j\) are the centroids of micro-clusters \(i\) and \(j\), respectively, and $\sigma$ is standard deviation. 
+Where \(\mu_i\) and \(\mu_j\) are the centroids of micro-clusters \(i\) and \(j\), respectively, and $\sigma$ is standard deviation. 
 
 To modify this affinity matrix, as it is called by Zhou, to suit our purposes, we simply need to change this undirected complete graph into a directed complete graph where \(W_{i,j}\) represents the weight or influence that \(j\) exerts on \(i\). The reason the influences will not be symmetric is that the influence \(j\) exhibits on \(i\) will now be proportional to the weight of the micro-cluster, i.e. the number of points in the cluster. This equation can be expressed as:
 \[
 	W_{i,j} =
 	\begin{cases}
-	 e^{-(\frac{||x_i-x_j||}{2\sigma^2})}\rho_j : i \neq j \\
+	 e^{-(\frac{||\mu_i-\mu_j||}{2\sigma^2})}\rho_j : i \neq j \\
 	0 :					 i  = j 
 \end{cases}\] 
 
@@ -173,7 +180,7 @@ Let this initial state of $\Upsilon$ be $\Upsilon^{(0)}$. Now we can let the lab
 
 Here, $\alpha $ is the learning rate, which we set of 0.99 in our experiments as suggested by Masud et al.\cite{TechRep} The label of a given micro-cluster $m$ at convergence is the column at which the value of $\Upsilon_{mc}$ is greatest. The convergence condition on the label propagation is the point where no micro-cluster changes its label over subsequent iterations. 
 
-\subsection{Using a Model to Classify a Point}
+\subsection*{Using a Model to Classify a Point}
 
 In order to classify a given point against a single model, we build a vector $Y$with $C$ elements, where $Y_c$ represents a score for that point being of class $c$. To generate this score, we simply use the Gaussian Kernel Function to score the distance between the point and every micro-cluster, and then add that score to $Y_c$ where $c$ is the label of that given micro-cluster. We will also, after comparing the point to every micro-cluster, normalise the vector, with a small non-zero epsilon to avoid dividing by zero. This process can be expressed as an equation for labelling point $x$:
 
@@ -182,19 +189,19 @@ where
 \[W(i,j) = e^{-(\frac{||x_i-x_j||}{2\sigma^2})}\rho_j\]
 
 To classify the point against this model, we simply label the point as class $c$ where $c$ is the index with the largest value in $Y$.
-\section{Classification and the Ensemble}
+\section*{Classification and the Ensemble}
  
 An ensemble is a collection of Models which we use to classify points in our stream. We use an ensemble to classify points in the data stream rather than the most recent model for several reasons. Firstly, because a single model is trained on only a small subset of the dataset, a certain model can be poorly trained. In this case, our poorly trained model will be quickly evicted from our ensemble. 
 
-Secondly, the ensemble is an excellent way to handle concept drift within a stream. If there is a concept shift within the stream, models trained after the concept shift will gradually replace those models trained beforehand, and slowly the classification decisions of the ensemble will adapt to the concept drift. If however, a certain change in distribution of data in a chunk is cause by random chance and is not a genuine concept drift, the model trained with that data will simply be evicted as soon as the data distribution returns to normal. 
+Secondly, the ensemble is an excellent way to handle concept drift within a stream. If there is a concept shift within the stream, models trained after the concept shift will gradually replace those models trained beforehand, and slowly the classification decisions of the ensemble will adapt to the concept drift. If however, a certain change in distribution of data in a chunk is cause by random chance and is not genuine concept drift, the model trained with that data will simply be evicted as soon as the data distribution returns to normal. 
 
-\subsection{Adding a Model to the Ensemble}
+\subsection*{Adding a Model to the Ensemble}
 
 Once we have generated a model, we will need to include it in our ensemble of Models, which we will use to classify points. There are, however, certain steps we need to execute whenever we add an model to an ensemble. Firstly, we need to add our new model to the current ensemble. If our ensemble is not full, then we simply add it without any modification. However, if our ensemble is full, we need to evict our worst performing model. We do this by taking the labelled points in the data chunk used to train the most recent model (i.e, the most recent labelled points) and scoring the performance of each model in the ensemble. If two models perform equally well, we remove the oldest model.
 
-\subsection{Handling a new Class in the Data Stream}
+\subsection*{Handling a new Class in the Data Stream}
 
-As we process the data stream, we may have a new class appear in the data stream that has never been seen before. This could be because our manual classifier felt that an examined data point could not be described within the current class framework. Woolam et al\cite{LabStr} call this an 'evolved class'. On the other hand, this could be a very rare class which has always existed in the data stream, but by chance has only now appeared. This raises the issue of what should be done about this new class. 
+As we process the data stream, we may have a new class appear in the data stream that has never been seen before. This could be because our manual classifier felt that an examined data point could not be described within the current class framework. Woolam et al.\cite{LabStr} call this an 'evolved class'. On the other hand, this could be a very rare class which has always existed in the data stream, but by chance has only now appeared. This raises the issue of what should be done about this new class. 
 
 Since previous models do not know about this new class, it is not possible that previous models can predict it. So what we will do is inject a micro-cluster representing that point into the previous models, giving them a chance to predict the point when they are being evaluated for quality when a new ensemble is added. So, for any class which has never been seen before in the stream, we will add a micro-cluster to each model in the ensemble of that class. 
 
@@ -204,14 +211,14 @@ Hence, we merge the nearest two micro-clusters only if:
 
 \begin{enumerate}
 \item There exists two micro-cluster of the same label
-\item The total number of micro-clusters, \( M_i \geq K \), the number of macro-clusters. 
+\item The total number of micro-clusters, \( M \geq K \), the number of macro-clusters. 
 \end{enumerate}
 
 There is the issue of whether injecting models with the new class and merging the closest pair of micro-clusters of the same label increases the classification accuracy. One the one hand, we might think the accuracy increases because no model without information on the class can predict a point of that class. However, injecting a micro-cluster into all of the models of the ensemble could increase the correlation between each model, reducing the overall accuracy of the ensemble. \cite{Inject}
 
-The theory behind this injection is given a full discussion in Khan et al. \cite{TechRep}, and I will not repeat it here. The key finding is that as long as single model error decreases monotonically as the prior probability of the evolved class increases, our injection will always improve the quality of the ensemble classification given that our ensemble is not too large. This conclusion is drawn by proof incorporating a proof included in Turner et al.\cite{Inject}
+The theory behind this injection is given a full discussion in Masud et al. \cite{TechRep}, and I will not repeat it here. The key finding is that as long as single model error decreases monotonically as the prior probability of the evolved class increases, our injection will always improve the quality of the ensemble classification given that our ensemble is not too large. This conclusion is drawn by proof incorporating a proof included in Turner et al.\cite{Inject}, and the practical conclusion drawn by Masud et al.\cite{TechRep} is that the ensemble size should never exceed 10 models. 
 
-\subsection{Removing Harmful Micro-Clusters from Models}
+\subsection*{Removing Harmful Micro-Clusters from Models}
 
 When updating our ensemble, we also attempt to remove micro-clusters from models which may have a negative impact upon the classification accuracy of our ensemble. 
 
@@ -229,13 +236,13 @@ The probability of the first case is $(1-\alpha_i)$ and the probability of the s
 
 This means that if we want to reduce the classification error for the whole model, we can either reduce $\alpha_i$ or reduce $p_i$. In fact, it is this reasoning that led us to split unlabelled micro-clusters in the clustering step: by splitting the micro-cluster, we essentially replace one cluster with high $p_i$ with two with low $p_i$. 
 
-However, if we were to attempt to reduce $\alpha_i$, we could do that by removing all micro-clusters! But that would preposterous. Instead, what we will do is keep track of micro-clusters which have high $p_i$, and if they become too high, we will simply remove them. This should improve the model classification accuracy, because for that micro-cluster, $\alpha_i = 0$ and so it will not cause any misclassification. However, this improvement only occurs if there is no cascading effect. If we remove a certain micro-cluster, now adjacent micro-clusters are swing voters for the points for which our deleted micro-clusters were swing voters. This may or may not lead those micro-clusters to be eligible for deletion. If we continue at this rate, then most or all of the micro-clusters could be deleted. 
+However, if we were to attempt to reduce $\alpha_i$, we could do that by removing all micro-clusters! But that would preposterous. Instead, what we will do is keep track of micro-clusters which have high $p_i$, and if they become too high, we will simply remove them. We call this measure the accuracy of the cluster. This should improve the model classification accuracy, because for that micro-cluster, $\alpha_i = 0$ and so it will not cause any misclassification. However, this improvement only occurs if there is no cascading effect. If we remove a certain micro-cluster, now adjacent micro-clusters are swing voters for the points for which our deleted micro-clusters were swing voters. This may or may not lead those micro-clusters to be eligible for deletion. If we continue at this rate, then most or all of the micro-clusters could be deleted. 
 
-Unfortunately, there is no tidy theory to deal with this problem. For our purposes, there is a hard limit of micro-clusters eligible to be deleted. Woolam suggested a threshold of no more than 50$\%$ point deletion, however here we allowed arbitrary deletion until the number of micro-clusters is no more than $K$, the number of macro-clusters in a model. 
+Unfortunately, there is no tidy theory to deal with this problem. For our purposes, there is a hard limit of micro-clusters eligible to be deleted. Woolam suggested a threshold of no more than 50$\%$ point deletion, however experimental testing suggested that a more aggressive policy could yield greater classification accuracy. For experiments in this paper, the maximal number of micro-clusters removed from model could not exceed 80$\%$.
 
-\section{Using LoOP to evaluate cluster quality}
+\section*{Using LoOP to evaluate cluster quality}
 
-The previous sections lay out the Label Stream algorithm in its entirety. However, if we are to somehow attempt to use cluster quality measures to increase the classification accuracy of the algorithm, we need a method of evaluating the quality of the micro-clusters we generate. If we could score each micro-cluster based on its quality, then we could weight its contribution to the classification of the point, and hopefully achieve a better classification accuracy. 
+The previous sections lay out the Label Stream algorithm in its entirety. However, if we are to somehow attempt to use density based cluster quality measures to increase the classification accuracy of the algorithm, we need a method of evaluating the quality of the micro-clusters we generate. If we could score each micro-cluster based on its quality, then we could weight its contribution to the classification of the point, and hopefully achieve a better classification accuracy. 
 
 Cluster evaluation methods typically use two basic measures. These are intra-cluster density, and inter-cluster separation. For example, Moulavi et al\cite{DBCV}. recently released a paper in which they evaluate cluster quality by scoring a cluster based on these two measures. To evaluate intra-cluster density, they score a cluster as the longest edge in a minimum spanning tree of the cluster, and evaluate the inter-cluster distance by finding the nearest pair of points between two clusters. They can then build an overall score based on these two measures. 
 
@@ -243,20 +250,20 @@ However, evaluating the quality of micro-clusters should not use inter-cluster m
 
 Another viable method to change the micro-clusters is simply to find outliers in a cluster and remove them. Since our clusters centroids are mean based, an outlier in a small cluster can skew the centroid of a cluster significantly. Identification and removal of these points maybe another way 
 
-In this section, we will discuss LoOP, a method which evaluates how likely it is a single point is an outlier within a cluster. After we have explained how this measure works, we will look at how it can be applied to this problem. 
+In this section, we will discuss LoOP \cite{Loop}, a method which evaluates how likely it is a single point is an outlier within a cluster. After we have explained how this measure works, we will look at how it can be applied to this problem. 
 
-\subsection{LoOP: The Local Outlier Probability Factor}
+\subsection*{LoOP: The Local Outlier Probability Factor}
 
-When trying to determine whether a point is an outlier, many outlier scores only give an arbitrary score which must be interpreted. However, LoOP is innovative in the way that rather than producing an arbitrary score, each point is assigned a probability of being an outlier. This makes the results much easier to interpret. 
+When trying to determine whether a point is an outlier, many outlier scores only give an arbitrary score which must be interpreted. However, LoOP is innovative in the way that rather than producing an arbitrary score, each point is assigned a probability of being an outlier. This makes the results much easier to interpret. The steps for calculating the LoOP score are detailed more extensively in the work of the authors of the paper, Kriegel et al.\cite{LoOP}, but I will recite the main points here.  
 
-The first step is to define a probabilistic distance. Suppose we have a distance measure like euclidean distance, which we denote as $d(x,y)$. Suppose also we have some point we are interested in $o$, and a set of objects $S$. Then we want our probabilistic distance between two a point $o$ and the set of objects $S$ to be have the property:
+The first step is to define a probabilistic distance. Suppose we have a distance measure like euclidean distance, which we denote as $d(x,y)$. Suppose also we have some point we are interested in $o$, and a set of objects $S$. Then we want our probabilistic distance between a point $o$ and the set of objects $S$ to be have the property:
 
 \[\forall s \in S: P[d(o,s) \leq pdist(o,S)] \geq \phi\]  
 
 where $\phi$ is some constant. Intuitively, what this means is that a sphere around $o$ with a radius $pdist(o,S)$ covers any element in S with probability $\phi$. Now, if we wish to estimate probabilistic density, we can take the inverse of the $pdist$:
 \[pdens(S) = \frac{1}{pdist(o,S)}\]
 
-Now, if we use  $\lambda = \sqrt{2} erf^{-1}(\phi)$ rather than $\phi$, where $erf$ is the gaussian error function, we can interpret $\lambda$ as a multiplier from standard deviation $\sigma$. So for instance,  $\lambda = 1 \Leftrightarrow \phi = 68\%$, and $\lambda = 2 \Leftrightarrow \phi = 95\%$, etc. Now we can define a standard distance between one point $o$ and a cluster of points $S$:
+Now, if we use  $\lambda = \sqrt{2} erf^{-1}(\phi)$ rather than $\phi$, where $erf$ is the gaussian error function, we can interpret $\lambda$ as a multiplier of standard deviation $\sigma$. So for instance,  $\lambda = 1 \Leftrightarrow \phi = 68\%$, and $\lambda = 2 \Leftrightarrow \phi = 95\%$, etc. Now we can define a standard distance between one point $o$ and a cluster of points $S$:
 
 \[\sigma (o,S) = \sqrt{\frac{\sum_{s \in S} d(o,s)^2}{|S|}}\]   
 
@@ -278,7 +285,7 @@ The purpose of this measure is to standardise what constitutes an outlier across
 
 The resulting LoOP score will be close to 0 for points which are in dense clusters, and close to 1 for points that are density based outliers. 
 
-\subsection{Using LoOP scores to improve Cluster Quality by removal}
+\subsection*{Using LoOP scores to improve Cluster Quality by removal}
 
 One way to improve the quality of a given micro-cluster is to simply remove outliers. The reason that this will improve the quality of the cluster is that when we calculate the centroid of a cluster, we calculate the position of the centroid by averaging the positions of every point in the cluster:
 
@@ -286,7 +293,7 @@ One way to improve the quality of a given micro-cluster is to simply remove outl
 
 Hence, a single outlier has the possibility to skew the position of the centroid of a cluster. Of course, outliers can cancel each other out, but simply removing an outlier from a cluster will not make the cluster quality worse. 
 
-The other question to ask is why LoOP is more appropriate than other outlier factors like LOF. The reason why we prefer LoOP over other outlier measures is that LoOP gives us a way to standardise "outlierness" between clusters. For instance, if a cluster has four very close points and one point further away, that point may be interpreted as an outlier. However, when we consider the distances between points in other clusters, it may become apparent that in the context of the dataset that one further away point is not an outlier. 
+The other question to ask is why LoOP is more appropriate than other outlier factors like LOF\cite{LOF}. The reason why we prefer LoOP over other outlier measures is that LoOP gives us a way to standardise "outlierness" between clusters. For instance, if a cluster has four very close points and one point further away, that point may be interpreted as an outlier. However, when we consider the distances between points in other clusters, it may become apparent that in the context of the dataset that one further away point is not an outlier. 
 
 The procedure for calculating the LoOP score for every point is as follows:
 
@@ -296,9 +303,9 @@ The procedure for calculating the LoOP score for every point is as follows:
 \item Now we can calculate the LoOP score of every point. 
 \end{enumerate}
 
-We will remove a point given it has a LoOP score greater than 0.5, with the LoOP calculations done with $\lambda = 2$. We can interpret this as removing a point if it is more likely than not that it is outside 2 standard deviations. 
+We will remove a point given it has a LoOP score greater than 0.5, with the LoOP calculations done with $\lambda = 3$. We can interpret this as removing a point if it is more likely than not that it is outside 3 standard deviations. 
 
-\subsection{Using LoOP scores to predict cluster quality}
+\subsection*{Using LoOP scores to predict cluster quality}
 
 A more uncertain method of improving the classification accuracy of the algorithm is to use the LoOP scores of individual points within a cluster to attempt to score the whole cluster, and then use that score to bias the classification process towards micro-clusters that have a higher cluster quality. Provided we had an appropriate measure, we could simply weight each micro-cluster by its quality when considering it in classification. Let $\tau_i$ denote the cluster quality of micro-cluster $i$. Then we can change our classification influence function to be:
 
@@ -323,13 +330,40 @@ The solution to both these problems is to use an average of the points in the cl
 \begin{enumerate}
 \item Find the LoOP scores of all points in each cluster. 
 \item We then, for each cluster $i$, sort the points by score. 
-\item We take the highest $10\%$ of these scores, and average them $Av(i)$. 
+\item We take the highest $5\%$ of these scores, and average them $Av(i)$. 
 \item $\tau_i = 1 - Av(i)$. 
 \end{enumerate}
  
+\subsection*{Interaction between Micro-cluster Removal and Proposed LoOP measures}
 
-\section{Experiments}
-Experiments were conducted on a variety of datasets. Since the aim of the alterations to the LabelStream algorithm was to increase the classification accuracy of the algorithm, no experiment tracked the relative point classification rate of the algorithm with and without the LoOP density score. Subsequently, the hardware the tests were performed on is not particularly relevant, however for completeness they were performed on a MacBook Pro with a 2.5GHz processor and 4GB of memory. 
+It is worth noting that the algorithm already has a built in notion of cluster quality; the accuracy of a micro-cluster. This is extensively discussed in a previous section, however the basic notion is that we assign every labelled point in a training set to its nearest micro-cluster, and if a certain micro-cluster has too many points of the wrong label to it, it is removed. Hence, this method does not attempt to modify the micro-cluster or reduce its influence somewhat, but rather entirely remove it. 
+
+The methods experimented with in this paper are different in two respects. Firstly, the methods of evaluation used with density based outlier methods evaluate quality once, independent of the current training data, rather than iteratively and dependent on the state of the current data chunk. Secondly, the above methods attempt to only dampen the influence of micro-clusters which contain outliers, rather than exclude them. 
+
+The other thing we might wonder is how these quality modifications interact with one another. Firstly, outlier removal and micro-cluster removal by accuracy could compliment one another. If outliers skew the centroid of a certain cluster, it may move the centroid of the cluster away from test points of the same label and towards those with other labels, leading to be classified as an inaccurate micro-cluster, and removed. If we remove the outliers, an inaccurate micro-cluster may become accurate and contribute to classifier accuracy rather than hinder it. 
+
+On the other hand, it is less clear how scoring cluster quality and micro-cluster removal will interact. It is possible that micro-cluster removal entirely subsumes any effect of the cluster quality scoring. 
+
+
+\section*{Complexity}
+
+The complexity of Label Stream is well discussed Masud et al.\cite{TechRep}, and I will summarise the results here. 
+\begin{itemize}
+\item The complexity of the initial cluster step is $O(KS g(S))$, where $g(S)$ is the sublinear function representing how long it takes for ICM to converge, $K$ is the number of macro-clusters and $S$ is the data chunk size.
+\item The complexity of micro-cluster splitting, label propagation is $M^3L$, where $M$ is the number of micro-clusters and $L$ is the number of models in the ensemble. This complexity is largely due to the matrix operations in the label propagation.
+\item Refining the ensemble takes $O(ML(P/100)S)$ time where $P$ is the percentage of labelled points required before we can build a model. 
+\end{itemize} 
+
+Since $M$ is bounded by $K(C+1)$, and K, C, L and P are relatively small, we can talk about Label Stream being approximately linear with the size of the size of the data chunk, S. 
+
+The complexity of LoOP is not much different. To calculate the nPlof, we need to calculate the PLOF of every point the the data chunk.  To calculate the Plof of a point, we need to calculate the pDist of every point in that microcluster. To do that, we need to compare distances with every point in the micro-cluster. So suppose that $A$ is the average size of a micro-cluster. So:
+
+\[S = MA\]
+
+then the complexity of LoOP is $O(SA^2)$, which is approximately linear in the size of $S$, since $A$ will be much smaller than $S$.
+
+\section*{Experiments}
+Experiments were conducted on a variety of datasets. Since the aim of the alterations to the Label Stream algorithm was to increase the classification accuracy of the algorithm, no experiment tracked the relative point classification rate of the algorithm with and without the LoOP density score. Subsequently, the hardware the tests were performed on is not particularly relevant, however for completeness they were performed on a MacBook Pro with a 2.5GHz processor and 4GB of memory. 
 
 Since the LabelStream algorithm is stochastic, for each of these results, the test was run twenty times each, and the cumulative accuracy results for each averaged. 
 
@@ -338,9 +372,9 @@ Number of contiguous models to take labelled micro-clusters from in label propag
 $\sigma$ for label propagation and Classification = 0.25
 $\alpha$ learning rate for label propagation = 0.99
 
-\subsection{SynD Dataset}
+\subsection*{SynD Dataset}
 
-\subsubsection{The Dataset}
+\subsubsection*{The Dataset}
 The primary purpose of the SynD dataset is to examine how each algorithm deals with conceptual drift in the data stream. SynD is a synthetic dataset generated in MOA which is based on a shifting hyperplane. The equation of the hyperplane is:
 
 \[  \sum_{i = 1}^d a_i x_i = a_0 \]
@@ -358,7 +392,7 @@ Magnitude of drift \(\in \lbrack 0.1,1\rbrack \) \\
 Chance of drift direction change = \(10 \% \) \\
 Number of points before drift recalculation  = 1000\\
 Noisy points = \(5\% \)
-\subsubsection{Results}
+\subsubsection*{Results}
 
 \includegraphics[scale= 0.6]{SynDFinalLine}
 
@@ -366,36 +400,36 @@ As we can see from this clearly labelled graph, using the cluster weighting in t
 
 Incidentally, the clusters which had the largest outlier factor were the large, originally unlabelled microclusters. These would often have an LoOP score of 0.7, rather than the very small labelled microclusters, which would have a score approaching one. These microclusters tended to be small, due to the paucity of labelled data in the training chunk, and hence tended to have lower outlier scores. Consequently, the algorithm which included the LoOP scores emphasised these small labelled microclusters in the labelling process and marginalised the larger, unlabelled microclusters, resulting in a higher classification accuracy. 
 
-\subsection{KDDCup Network Intrusion Dataset}
-\subsubsection{The Dataset}
+\subsection*{KDDCup Network Intrusion Dataset}
+\subsubsection*{The Dataset}
 
 The KDDCup Network Intrusion dataset is an extremely common test dataset for Machine Learning problems. Each data point contains 41 categorical or real value attributes relating to the status of a network connection, and then a classification value which states whether the network connection was an attack, and if so, what kind of attack it was. The classification problem is hence to identify whether the connection is normal or whether it is an attack of a certain variety. However, for my implementation, all categorical data except the class of network attack was removed for purposes of comparison with the Label Stream algorithm. The actual set used was the fully labelled ten percent subset freely available from most data repositories \footnote{\url{ www.kdd.ics.uci.edu/databases/kddcup99/kddcup99.html } } which has approximately 500,000 data points.    
 
 It is worth noting that this data was not originally a stream, it was simply interpreted as a stream. This means that extremely sudden concept drift can occur in the data which results in large changes to the ensemble. It is also worth noting that although there are 24 classes in the dataset, 98\(\%\) of the data points fall into one of three classes: Normal, Neptune attack, or Smurf attack. This means the success of the classification depends largely on predicting these three classes. 
-\subsubsection{Results}
+\subsubsection*{Results}
 
-\subsection{Forest Cover Dataset}
-\subsubsection{The Dataset}
+\subsection*{Forest Cover Dataset}
+\subsubsection*{The Dataset}
 
 The Forest Cover Dataset is a dataset which attempt to classify what type of forest cover is in a particular area of forest based on certain attributes. Each data point has 54 attributes, however most of these are binary variables relating to particular characteristics of soil type, so if you count them as one attribute, there are only 10 attributes. All of these attributes are integers or real values.  There are then 7 types of forest cover into which the data point can be classified. 
 
 The dataset is large, containing 500,00 data points. These are predominantly made up of two classes: Spruce-Fir with 210,000 records and Lodgepole Pine with 280,000 records. The remaining classes number between 2,500 and 40,000 records. It is also worth noting this dataset is not a stream, it is simply interpreted as a stream. 
 
 
-\subsubsection{Results}
+\subsubsection*{Results}
 
-\subsection{Power Usage Dataset}
-\subsubsection{The Dataset}
+\subsection*{Power Usage Dataset}
+\subsubsection*{The Dataset}
 The Power Usage dataset is a very simple data stream. There are only two attributes for each data point; the amount of power on the main grid and the amount of power transformed from other grids. The class to be predicted is the hour of the day which these power measurements came from. This means there are 24 classes. The interesting property of this dataset is that many of the classes are extremely similar. In fact, when this data stream was used for experimentation by Zhang et al.\cite{Zhang} they transferred the data set into a binary classification problem, possibly to avoid this problem. 
 
 The other interesting aspect of this dataset is that there is natural concept drift, caused by factors like the  day of the week the data is measured on and the season. The downside to this dataset there are only 30,000 records, which is very small. Simply reducing the size of the chunks will leads to less labelled data in to train each model on, so for this dataset we increased the proportion of data in each chunk which is labelled. 
 
-\subsection{Sensor Stream Dataset}
-\subsubsection{The Dataset}
+\subsection*{Sensor Stream Dataset}
+\subsubsection*{The Dataset}
 The sensor stream dataset is a real world data stream generated by the Intel Berkeley Research Lab. They planted sensors throughout their offices which every few minutes took measurements of temperature, humidity, light and voltage. The classification problem is to decide which of the 54 sensors the data point came from. One of the interesting features of this data is the sheer volume, since it has over 2,000,000 records. However, we must consider that per class, the amount of data is probably in line with some of the other data sets we have tested here.  
 
-\subsubsection{Results}
-\section{Conclusion}
+\subsubsection*{Results}
+\section*{Conclusion}
 \begin{thebibliography}{20}
 
 \bibitem{LabStr}
@@ -433,6 +467,9 @@ Li, Peipei, Xindong Wu, and Xuegang Hu. "Mining recurring concept drifts with li
 
 \bibitem{Loop}
 Kriegel, Hans-Peter, et al. "LoOP: local outlier probabilities." Proceedings of the 18th ACM conference on Information and knowledge management. ACM, 2009.
+
+\bibitem{LOF}
+Breunig, Markus M., et al. "LOF: identifying density-based local outliers." ACM Sigmod Record. Vol. 29. No. 2. ACM, 2000.
 
 \end{thebibliography}
 \end{document}

@@ -129,7 +129,7 @@ public class Graphing {
 		XYIntervalSeriesCollection d = new XYIntervalSeriesCollection();
 		d.addSeries(bench);
 		d.addSeries(bench2);
-		d.addSeries(bench3);
+		//d.addSeries(bench3);
 		return d;
 	}
 	

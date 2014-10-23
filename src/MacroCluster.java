@@ -14,6 +14,7 @@ public class MacroCluster extends Cluster{
 	private int[] predictedClassCounter;
 	private int c;
 	private int adc;
+	public static boolean dcForUnlabelled = false;
 	private double unlabelledDispersion;
 	private double labelledDispersion;
 	private double dispersion;
@@ -131,7 +132,14 @@ public class MacroCluster extends Cluster{
 				entropy += (-1*prior*((Math.log(prior)/Math.log(2))));
 			}
 		}
-		int dc = totalPoints - classCounter[label];
+		int dc = 0;
+		if(dcForUnlabelled){
+			dc = totalPoints - classCounter[label];
+		}else{
+			if(isLabelled){
+				dc = labelledPointCount - classCounter[label];
+			}
+		}
 		
 		//System.out.println("Label: " + label+ " -- dc:  "+ dc );
 		//System.out.println("In impurity calc - adc after calc:" + adc);

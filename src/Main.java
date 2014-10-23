@@ -16,16 +16,17 @@ public class Main {
 	private static final int CHUNKSIZE = 1000;
 	private static final int L = 6;
 	private static final int K = 50;
-	private static final int TESTNUMBER = 5;
+	private static final int TESTNUMBER = 20;
 	private static final int ITERATIONS = 150;
 	private static final double PERCENTUNLABELLED = 0.9;
-	private static final String OUTPUTGRAPHNAME = "output/SynD";
-	private static final String GRAPHTITLE = "SynD DataSet";
-	private static final boolean SYNTHETIC = true;
+	private static final String OUTPUTGRAPHNAME = "output/PowerStreamNightDay";
+	private static final String GRAPHTITLE = "Power Stream Night Day Dataset";
+	private static final boolean SYNTHETIC = false;
 	private static final int ERRORINTERVAL = 25;
 	private static final int SYNTHETICLENGTH = 21;
 	private static final String FILE1 = "input/kddcup.data_10_percent_corrected";
 	private static final String FILE2 = "input/covtype.data";
+	private static final String FILE3 = "input/2classps.csv";
 
 	
 	public static void main(String[] args) throws IOException {
