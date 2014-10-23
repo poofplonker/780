@@ -15,7 +15,7 @@ int main(void){
     char waste;
     while (cin >> a >> waste >> b  >> waste >> c) {
         cout << fixed <<setprecision(1) << a << "," << b <<",";
-        if(c <=6 || c > 18){
+        if(c <=9 || c > 21){
             cout << '0' << endl;
         }else{
             cout << '1' << endl;
