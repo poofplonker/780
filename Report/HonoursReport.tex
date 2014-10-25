@@ -34,7 +34,7 @@ Finally, as we will see, the Label Stream algorithm developed by Woolam et al. \
 
 These approaches all have something in common; they all use clustering to associate unlabelled points with labelled points, and then they all apply different supervised techniques to leverage what little labelled data they possess for predictions on new unlabelled points. 
 
-
+/*Discussion of incremental vs ensemble*/
 \section*{Label Stream: An Algorithm for Classifying Stream Data}
 
 The algorithm that I chose to attempt to improve was one developed by researchers at the University of Dallas. The Label Stream algorithm was published in 2009 by Clay Woolam, Mohammad M. Masud and Latifur Khan\cite{LabStr}.
@@ -393,12 +393,13 @@ Chance of drift direction change = \(10 \% \) \\
 Number of points before drift recalculation  = 1000\\
 Noisy points = \(5\% \)
 \subsubsection*{Results}
+\begin{figure}
+	\includegraphics[scale=0.4]{SyndLine}
+	\caption{Cumulative accuracy for Data set with different quality settings}
+\end{figure}
 
-\includegraphics[scale= 0.6]{SynDFinalLine}
+As we can see from this graph, using cluster weighting or outlier removal had little effect on the cumulative accuracy of the algorithm on this dataset.  Due to the low class count relative to the number of macro-clusters, the cluster quality is a lot better than some datasets with more classes. 
 
-As we can see from this clearly labelled graph, using the cluster weighting in the label prediction slightly improved the cumulative accuracy of the classifier.  One of the observed properties of this dataset was that the classification accuracy was increased by excluding originally unlabelled microclusters from the ensemble point classification; in short, the label propagation onto unlabelled microclusters degraded the performance of the algorithm. 
-
-Incidentally, the clusters which had the largest outlier factor were the large, originally unlabelled microclusters. These would often have an LoOP score of 0.7, rather than the very small labelled microclusters, which would have a score approaching one. These microclusters tended to be small, due to the paucity of labelled data in the training chunk, and hence tended to have lower outlier scores. Consequently, the algorithm which included the LoOP scores emphasised these small labelled microclusters in the labelling process and marginalised the larger, unlabelled microclusters, resulting in a higher classification accuracy. 
 
 \subsection*{KDDCup Network Intrusion Dataset}
 \subsubsection*{The Dataset}
@@ -418,6 +419,10 @@ The dataset is large, containing 500,00 data points. These are predominantly mad
 
 \subsubsection*{Results}
 
+\begin{figure}
+	\includegraphics[scale=0.4]{covDataLine}
+	\caption{Cumulative accuracy for Data set with different quality settings}
+\end{figure}
 \subsection*{Power Usage Dataset}
 \subsubsection*{The Dataset}
 The Power Usage dataset is a very simple data stream. There are only two attributes for each data point; the amount of power on the main grid and the amount of power transformed from other grids. The class to be predicted is the hour of the day which these power measurements came from. This means there are 24 classes. The interesting property of this dataset is that many of the classes are extremely similar. In fact, when this data stream was used for experimentation by Zhang et al.\cite{Zhang} they transferred the data set into a binary classification problem, possibly to avoid this problem. 
