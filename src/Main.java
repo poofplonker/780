@@ -7,6 +7,7 @@ import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedList;
+import java.util.List;
 
 import cern.jet.random.engine.MersenneTwister;
 
@@ -19,8 +20,8 @@ public class Main {
 	private static final int TESTNUMBER = 20;
 	private static final int ITERATIONS = 150;
 	private static final double PERCENTUNLABELLED = 0.9;
-	private static final String OUTPUTGRAPHNAME = "output/PowerStreamNightDay";
-	private static final String GRAPHTITLE = "Power Stream Night Day Dataset";
+	private static final String OUTPUTGRAPHNAME = "output/KDD";
+	private static final String GRAPHTITLE = "KDDCup Network Dataset";
 	private static final boolean SYNTHETIC = false;
 	private static final int ERRORINTERVAL = 25;
 	private static final int SYNTHETICLENGTH = 21;
@@ -31,8 +32,7 @@ public class Main {
 	
 	public static void main(String[] args) throws IOException {
 		System.setProperty("java.util.Arrays.useLegacyMergeSort", "true");
-		PrintWriter writer = new PrintWriter("output/KDDtest1.txt", "UTF-8");
-		writer.println("For each test: ");
+		PrintWriter writer = new PrintWriter(OUTPUTGRAPHNAME + "raw.txt", "UTF-8");
 		LinkedList<Double> error1 = new LinkedList<Double>();
 		LinkedList<Double> error2 = new LinkedList<Double>();
 		LinkedList<Double> error3 = new LinkedList<Double>();
@@ -40,15 +40,23 @@ public class Main {
 		ArrayList<Double> loopSum2 = new ArrayList<Double>();
 		ArrayList<Double> loopSum3 = new ArrayList<Double>();
 		LinkedList<Double> results1 = singleTest(false, false, error1, loopSum1);	//control
+		writePercents(results1, writer, -1);
+		writePercents(error1, writer, -1);
+		writePercents(loopSum1, writer, -1);
 		LinkedList<Double> results2 = singleTest(false, true, error2, loopSum2);	//outlier removal
+		writePercents(results2, writer, -1);
+		writePercents(error2, writer, -1);
+		writePercents(loopSum2, writer, -1);
 		LinkedList<Double> results3 = singleTest(true, false, error3, loopSum3);	//cluster scoring
+		writePercents(results3, writer, -1);
+		writePercents(error3, writer, -1);
+		writePercents(loopSum3, writer, -1);
 		for(Double d: results1){
 			System.out.println("Recorded point" + d);
 		}
 		for(Double d: error1){
 			System.out.println("Recorded point error" + d);
 		}
-		writer.println("Final Result:");
 		writePercents(results1, writer, -1);
 		writer.close();
 		Graphing.exportGraph(results1, results2, results3, error1, error2, error3, loopSum1, loopSum2,loopSum3 ,ERRORINTERVAL, GRAPHTITLE, OUTPUTGRAPHNAME);
@@ -115,7 +123,7 @@ public class Main {
 		return results;
 	}
 	
-	public static void writePercents(LinkedList<Double> list, PrintWriter p, int test){
+	public static void writePercents(List<Double> list, PrintWriter p, int test){
 		if(test > -1){
 			p.print(test + ":");
 		}
@@ -128,7 +136,7 @@ public class Main {
 	public static LinkedList<Double> ReaSC(int l, int k, double percentUnlabelled, int chunSize, boolean synthetic, boolean removal,boolean ratingCluster, ArrayList<Double> loopSum) throws IOException{
 		BufferedReader br;
 		if(!synthetic){
-			br = new BufferedReader(new FileReader(FILE3));
+			br = new BufferedReader(new FileReader(FILE1));
 		}else{
 			br = null;
 		}
