@@ -17,17 +17,18 @@ public class Main {
 	private static final int CHUNKSIZE = 1600;
 	private static final int L = 6;
 	private static final int K = 50;
-	private static final int TESTNUMBER = 20;
+	private static final int TESTNUMBER = 5;
 	private static final int ITERATIONS = 150;
 	private static final double PERCENTUNLABELLED = 0.9;
-	private static final String OUTPUTGRAPHNAME = "output/KDD";
-	private static final String GRAPHTITLE = "KDDCup Network Dataset";
+	private static final String OUTPUTGRAPHNAME = "output/4classPs";
+	private static final String GRAPHTITLE = "Power Stream with four classes";
 	private static final boolean SYNTHETIC = false;
 	private static final int ERRORINTERVAL = 25;
 	private static final int SYNTHETICLENGTH = 21;
 	private static final String FILE1 = "input/kddcup.data_10_percent_corrected";
 	private static final String FILE2 = "input/covtype.data";
 	private static final String FILE3 = "input/2classpsbig.csv";
+	private static final String FILE4 = "input/4classps.csv";
 
 	
 	public static void main(String[] args) throws IOException {
@@ -136,7 +137,7 @@ public class Main {
 	public static LinkedList<Double> ReaSC(int l, int k, double percentUnlabelled, int chunSize, boolean synthetic, boolean removal,boolean ratingCluster, ArrayList<Double> loopSum) throws IOException{
 		BufferedReader br;
 		if(!synthetic){
-			br = new BufferedReader(new FileReader(FILE1));
+			br = new BufferedReader(new FileReader(FILE4));
 		}else{
 			br = null;
 		}

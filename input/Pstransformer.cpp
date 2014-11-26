@@ -10,26 +10,35 @@
 #include <iomanip>
 using namespace std;
 int main(void){
-    double a,b;
+    const int CLASSES = 100;
+    double a,b,d,e;
     int c;
     char waste;
-    double first[25];
-    double second[25];
-    int counter = 0;
-    while (cin >> a >> waste >> b  >> waste >> c) {
+    double first[CLASSES];
+    double second[CLASSES];
+    double third[CLASSES];
+    double fourth[CLASSES];
+    int counter[CLASSES];
+    double waste2;
+    for (int i = 0; i < CLASSES; i++) {
+        counter[i] = 0;
+    }
+    while (cin >> waste2 >> waste>> a >> waste >> b >> waste >> d>> waste>>  e>> waste>> c) {
         first[c] += a;
         second[c] += b;
-        counter++;
-        cout << fixed <<setprecision(1) << a << "," << b <<",";
-        if(c < 7){
+        third[c] += d;
+        fourth[c] += e;
+        counter[c]++;
+        cout <<fixed << setprecision(3) << a << "," << b <<"," << d << "," << e <<",";
+        if(c == 2 || (c >  27 && c < 44)){
             cout << '0' << endl;
         }else{
             cout << '1' << endl;
         }
         
     }
-//    for(int i = 0; i < 24; i++){
-//        cout  << i << " "<<first[i] /counter << " "<<  second[i]/counter << endl;
+//    for(int i = 0; i < CLASSES; i++){
+//        cout  << i << " "<<counter[i] <<" "<<first[i] /counter[i] << " "<<  second[i]/counter[i] << " "<<third[i]/counter[i] << " " << fourth[i]/counter[i] << endl;
 //    }
 
 }

@@ -89,7 +89,7 @@ public class Graphing {
 		return (max > 1) ? 1: max; 
 	}
 	private static XYDataset genData(LinkedList<Double> results1, LinkedList<Double> results2, LinkedList<Double> results3, LinkedList<Double> error1, LinkedList<Double> error2,LinkedList<Double> error3,int errorInterval){
-		XYIntervalSeries bench = new XYIntervalSeries("Without Cluster Rating");
+		XYIntervalSeries bench = new XYIntervalSeries("Control");
 		int counter = 0;
 		for(int i = 0; i < results1.size(); i++){
 			if((i % errorInterval)!= 0){
@@ -100,7 +100,7 @@ public class Graphing {
 				counter++;
 			}
 		}
-		XYIntervalSeries bench2 = new XYIntervalSeries("With Removal");
+		XYIntervalSeries bench2 = new XYIntervalSeries("With Outlier Removal");
 		counter = 0;
 		for(int i = 0; i < results2.size(); i++){
 			if((i%errorInterval) != 2*errorInterval/3){
@@ -112,7 +112,7 @@ public class Graphing {
 				counter++;
 			}
 		}
-		XYIntervalSeries bench3 = new XYIntervalSeries("With Scoring");
+		XYIntervalSeries bench3 = new XYIntervalSeries("With Cluster Scoring");
 		counter = 0;
 		for(int i = 0; i < results3.size(); i++){
 			if((i%errorInterval) != errorInterval/3){
