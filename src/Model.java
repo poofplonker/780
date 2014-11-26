@@ -12,7 +12,7 @@ import cern.jet.random.engine.MersenneTwister;
 public class Model {
 	private static final double ALPHA = 0.99;		//learning rate for label propagation
 	private static final double OUTLIERTHRESHOLD = 0.5;
-	private int index;								//Index to distinguish different models
+	private int index;								//Index to distinguish different models. Indexing done sequentially
 	private ArrayList<MacroCluster> macroClusters;
 	private ArrayList<MicroCluster> microClusters;
 	private ArrayList<Boolean> seenClass;			//Whether or not certain classes have been seen in this data chunk.
@@ -54,17 +54,21 @@ public class Model {
 		//After full model is built
 		//Create a summary of the cluster scores. We do this by returning the min, max, quartile scores, and median cluster score. 
 		double[] loopScores = new double[pseudoPoints.size()];
+		
+		//get loop scores for all pseudopoints (summary of microcluster) and sort them
 		for(int i = 0; i <pseudoPoints.size(); i++ ){
 			loopScores[i] = pseudoPoints.get(i).getClusterRating();
 		}
 		Arrays.sort(loopScores);
+		
 		loopSummary = new ArrayList<Double>();
-		loopSummary.add(loopScores[0]);
-
-		loopSummary.add(loopScores[(pseudoPoints.size()-1)/4]);
-		loopSummary.add(loopScores[2*(pseudoPoints.size()-1)/4]);
-		loopSummary.add(loopScores[3*(pseudoPoints.size()-1)/4]);
-		loopSummary.add(loopScores[pseudoPoints.size()-1]);
+		
+		//this loop will record the min, max, median, and interquartile cluster scores and return it to where the data is collated.
+		for(int i = 0; i < 5; i++){
+			loopSummary.add(loopScores[i*(pseudoPoints.size()-1)/4]);
+		}
+		
+		//printout for console 
 		System.out.println("Loop Summary:");
 		for(int i = 0; i < loopSummary.size(); i++){
 			System.out.print(loopSummary.get(i) + " ");
