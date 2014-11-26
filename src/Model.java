@@ -10,40 +10,49 @@ import cern.jet.random.engine.MersenneTwister;
 
 
 public class Model {
-	private int chunkSize;
-	private int index;
+	private static final double ALPHA = 0.99;		//learning rate for label propagation
+	private static final double OUTLIERTHRESHOLD = 0.5;
+	private int index;								//Index to distinguish different models
 	private ArrayList<MacroCluster> macroClusters;
 	private ArrayList<MicroCluster> microClusters;
-	private ArrayList<Boolean> seenClass;
+	private ArrayList<Boolean> seenClass;			//Whether or not certain classes have been seen in this data chunk.
 	private ArrayList<PseudoPoint> pseudoPoints;
-	private ArrayList<DataPoint> trainingData;
-	private ArrayList<Double> loopSummary;
+	private ArrayList<DataPoint> trainingData;		
+	private ArrayList<Double> loopSummary;			//Summary of cluster scores
 	private DataChunk dataChunk;
 	private int totalPoints;
-	private int[] classData;
-	private boolean removal;
-	private int k;
-	private double removedPseudo;
+	private boolean removal;						//Whether we are removing outliers
+	private int k;	
+	private double removedPseudo;					//Percentage of pseudopoints removed from model due to inaccuracy
 	private int numPseudo;
-	private int c;
-	private boolean ratingClusters; 
+	private int c;									//Number of classes	
+	private boolean ratingClusters; 				//Whether we are scoring clusters and weighting classification by that scoring
+	private double stddev;							//STddev for label propagation
 	
+	//Model constructor 
 	public Model(MersenneTwister twister, DataChunk chunk, int k, int c, int[] classData, int totalPoints, int index,boolean removal, boolean ratingClusters){
+		
+		//initialisation
 		this.dataChunk = chunk;
-		this.chunkSize = chunk.getChunkSize();
 		this.seenClass = chunk.seenClass(c);
 		this.trainingData = chunk.getTrainingData();
 		this.k = k;
 		this.c = c;
 		this.index = index;
-		this.classData = classData;
 		this.totalPoints = totalPoints;
 		this.ratingClusters = ratingClusters;
 		this.removal = removal;
+		
+		
 		clusterData(twister);
+		
 		genMicroClusters();
+		
 		double nPlof = Loop.NPlof(microClusters);
 		createPseudoPoints(nPlof);
+		
+		//After full model is built
+		//Create a summary of the cluster scores. We do this by returning the min, max, quartile scores, and median cluster score. 
 		double[] loopScores = new double[pseudoPoints.size()];
 		for(int i = 0; i <pseudoPoints.size(); i++ ){
 			loopScores[i] = pseudoPoints.get(i).getClusterRating();
@@ -64,14 +73,17 @@ public class Model {
 		System.out.println("Model gen done");
 	}
 	
+	
 	public int getIndex(){
 		return index;
 	}
+	
 	
 	public ArrayList<Double> getLoopSummary(){
 		return loopSummary;
 	}
 	
+	//For when we do pseudo-point injection, we need to increment the number of classes.
 	public void incrementClass(){
 		c++;
 	}
@@ -79,140 +91,208 @@ public class Model {
 	public ArrayList<DataPoint> getTrainingData(){
 		return this.trainingData;
 	}
+	
 	public ArrayList<PseudoPoint> getPseudo(){
 		return pseudoPoints;
 	}
 	
+	public ArrayList<Boolean> getSeenClass() {
+		// TODO Auto-generated method stub
+		return seenClass;
+	}
+
+	public int getNumClass() {
+		return c;
+	}
+	
+	/*
+	 Function which splits macroclusters based on the class distribution into microclusters.	
+	 */
 	private void genMicroClusters() {
+		
 		//count the number of microclusters that will be required
 		//for each cluster, examine its points and place in appropriate microcluster.
 		microClusters = new ArrayList<MicroCluster>();
 
-
+		//base is an indexing variable used to assign a number (macrocluster,class) combination
+		//so that it can be found later.
 		int base = 0;
-		int macroPoints = 0;
+		
 		for(MacroCluster m: macroClusters){
-			macroPoints += m.getDataPoints().size();
-			//labelled points will be in cluster base+ 
+			
+			//Hash maps to see whether a microclsuter already exists for that class, or
+			//predicted class for unlabelled points, and which index it corresponds to.
 			HashMap<Integer,Integer> classToClusterLabelled = new HashMap<Integer,Integer>();
 			HashMap<Integer,Integer> classToClusterUnlabelled = new HashMap<Integer,Integer>();
 			LinkedList<DataPoint> points = m.getDataPoints();
+			
 			for(DataPoint p: points){
 				if(p.isLabeled()){
 					if(classToClusterLabelled.containsKey(p.getLabel())){
-						//System.out.println("Cluster for this point: " +classToClusterLabelled.get(p.getLabel()));
+						//if there already exists a microcluster for this class, add it to that microcluster
 						microClusters.get(classToClusterLabelled.get(p.getLabel())).attachPoint(p);
 					}else{
+						//if not, add class to  hash map, create new microcluster, and add point.
 						classToClusterLabelled.put(p.getLabel(), base);
 						microClusters.add(new MicroCluster(p,true,p.getLabel()));
 						microClusters.get(base++).attachPoint(p);
 					}
 				}else{
-					if(classToClusterUnlabelled.containsKey(p.getPredictedLabel())){
+					if(classToClusterUnlabelled.containsKey(p.getPredictedLabel())){			
+						//if there already exists a microcluster for this predicted class, add it to that microcluster
 						microClusters.get(classToClusterUnlabelled.get(p.getPredictedLabel())).attachPoint(p);
 					}else{
+						//if not, add predicted to hash map, create new microcluster, and add point.
 						classToClusterUnlabelled.put(p.getPredictedLabel(), base);
 						microClusters.add(new MicroCluster(p,false,-1));
-						//System.out.println("Label of unlabelled point is:" + p.getLabel());
 						microClusters.get(base++).attachPoint(p);
 					}
 				}
 			}
 		}
-		int sum = 0;
+		
+		//calculate centroids for all the microclusters.
 		for(MicroCluster m: microClusters){
 			m.recalculateCentroid();
-			//System.out.println(m);
-			sum += m.totalPoints;
-		}
-		System.out.println("Number of points in chunk:" + dataChunk.getChunkSize());
-		System.out.println("Number of points in macro: " + macroPoints);
-		System.out.println("Number of points in micro: " + sum);
-		if(sum > 1700){
-			System.out.println("Stop here");
 		}
 		System.out.println("Number of micro-clusters: " + microClusters.size());
 	}
 	
-	private void initialiseClusters(MersenneTwister twister){
+	/*
+	 * Framework function for the entire clustering process.
+	 */
+	public ArrayList<MacroCluster> clusterData(MersenneTwister twister){
+		ArrayList<MacroCluster> clusters = new ArrayList<MacroCluster>(k);
+		this.macroClusters = clusters;
+		ArrayList<DataPoint> dataPoints = dataChunk.getDataPointArray();
+
+		//Select centroids proportionate to class representation for initialisation.
+		initialiseClusters(twister);
+
+		//initialise all dataPoints to cluster with nearest centroid.
+		double totalValue = 0;
+		for(DataPoint d: dataPoints){
+			//CHECK TO SEE D WAS NOT ALREADY IN THE CLUSTER
+			if(!d.isCentroid()){
+				totalValue += attachToNearestImp(d);
+			}
+		}
+		
+		//Perform Expectation Minimisation
+		expectationMinimisation(clusters,dataPoints);
+		return clusters;
+		
+	}
+	
+	/*
+	 * This is a function which initialises the clusters for the clustering phase. This is done by seeding the k
+	 * macro-clusters with a single labelled point, based on the distribution of labelled points in the data chunk.
+	 */
+	private void initialiseClusters(MersenneTwister twister)
+	{
+		//base is once again an index for the macroclusters.
 		int base = 0;
 		int visitedSum = 0;
+		
 		//precompute the number of centroids per class
-		int[] centroidCounter = new int[c];
+		
+		//cluster counter contains the number of macroclusters initialised from points of that class
+		int[] clusterCounter = new int[c];
 		ArrayList<DataPoint> dataPoints = dataChunk.getDataPointArray();
+		
+		//class counter contains how many points of each class are labelled in this datachunk.
 		int[] classCounter = dataChunk.getClassCounter(c);
+		int numLabelledPoints = dataChunk.getNumLabelledPoints();
+		
 		int totalAssigned = 0;
 		for(int j = 0; j < c && dataChunk.getNumLabelledPoints() != 0; j++){
-			centroidCounter[j] = Math.round((k*classCounter[j])/totalPoints);
-			//System.out.println("We need " + centroidCounter[j] + " centroids to be initialised as class " + j);
-			totalAssigned += centroidCounter[j];
+			clusterCounter[j] = Math.round((k*classCounter[j])/numLabelledPoints);
+			totalAssigned += clusterCounter[j];
 		}
+		
+		//if due to rounding we have some leftover clusters, select a random class. 
 		while(totalAssigned < k){
-			centroidCounter[Math.abs(twister.nextInt()) % c]++;
+			clusterCounter[Math.abs(twister.nextInt()) % c]++;
 			totalAssigned++;
 		}
-		ArrayList<LinkedList<DataPoint>> classPoints = new ArrayList<LinkedList<DataPoint>>(k);
-		for(int i = 0; i < k; i++){
+		//class points is list of points of a certain class
+		ArrayList<LinkedList<DataPoint>> classPoints = new ArrayList<LinkedList<DataPoint>>(c);
+		for(int i = 0; i < c; i++){
 			classPoints.add(i,new LinkedList<DataPoint>());
 		}
+		
+		//populate list of points for each class
 		for(int i = 0; i < dataPoints.size(); i++){
-			DataPoint currentPoint = dataPoints.get(i);
 			
+			DataPoint currentPoint = dataPoints.get(i);
 			if(currentPoint.isLabeled()){
-				//System.out.println("Adding a point to " + currentPoint.getLabel());
 				classPoints.get(currentPoint.getLabel()).add(currentPoint);
 			}
 		}
+		
+		//for every class
 		for(int j = 0; j < c; j++){
-			int i = 0; //number of clusters initialised
+			int i = 0; //number of clusters initialised of this class
 			
-			
-			
-			//we initialise the number of clusters for a class proportional to the represet
-			int representation = centroidCounter[j];
-			//System.out.println("Class " + j + " has " + representation + " clusters to initiate");
-			LinkedList<DataPoint> thisClassPoints = classPoints.get(j);
+			//we initialise the number of clusters for a class proportional to the representation
+			int representation = clusterCounter[j];
 			
 			//get all points of this class
-
+			LinkedList<DataPoint> thisClassPoints = classPoints.get(j);
+			
+			//Visited set is the points which are the centroid for some cluster
 			LinkedList<DataPoint> visitedSet = new LinkedList<DataPoint>();
+			
 			if(thisClassPoints.size() > representation){
-			//employ farthest first heuristic to select the points from this class
-				//System.out.println("Using farthest first");
+				
+				//employ farthest first heuristic to select the points from this class
 				boolean[] contained = new boolean[thisClassPoints.size()];
+				
+				//select a random point to begin with
 				int index = Math.abs(twister.nextInt()) % thisClassPoints.size();
-				//System.out.println("Initial Index : " + index);
 				DataPoint centroid = thisClassPoints.get(index);
-				//System.out.println("Initial centroid: " + centroid);
+
 				visitedSet.add(centroid);
 				contained[index] = true;
 				i++;
-				//System.out.println("After 1 addition, size of visitedSet " + visitedSet.size() + " and size of classPoints: " + thisClassPoints.size());
+				
+				//while you have not fulfilled your quota from this class
 				while(i < representation){
+					
 					double maxDistance = -1;
 					int maxIndex = -1;
+					
+					//for each point of that class
 					for(int d = 0; d < thisClassPoints.size(); d++){
+						
+						//if the point is already a centroid, ignore it
 						if(contained[d] == true){
 							continue;
 						}
+						
+						//calculate the distance between a point and all other points in the centroid
 						double thisDistance = 0;
 						for(DataPoint c : visitedSet){
 							 thisDistance += c.getDistanceValue(thisClassPoints.get(d));
 							 //System.out.println("Distance from point " + c.getAbsoluteIndex() + " to point " + thisClassPoints.get(d).getAbsoluteIndex() + " : " + c.getDistanceValue(thisClassPoints.get(d)));
 						}
-						//System.out.println("Point: " + thisClassPoints.get(d) + "is " + thisDistance + " distance away");
+						
+						//if it is the largest, record it
 						if(thisDistance > maxDistance){
 							maxDistance = thisDistance;
 							maxIndex = d;
 						}
 					}
+					
+					//add furthest away point to set of points to be centroid
 					contained[maxIndex] = true;
 					visitedSet.add(thisClassPoints.get(maxIndex));
-					//System.out.println("Added " + thisClassPoints.get(maxIndex) + " as the furthest away point with distance " + maxDistance);
 					i++;
 				}
 				
 			}else{
+				
+				//if we are out of point for that class, randomly select unlabelled points.
 				i = 0;
 				for(DataPoint d: thisClassPoints){
 					visitedSet.add(d);
@@ -228,7 +308,7 @@ public class Model {
 				
 			}
 			i = 0;
-			
+			//for each point to be centroid, create a microcluster with it as the centroid
 			visitedSum += visitedSet.size();
 			for(DataPoint d: visitedSet){
 				MacroCluster temp = new MacroCluster(d,macroClusters.size(),c);
@@ -244,70 +324,49 @@ public class Model {
 		System.out.println("Read no of microClusters:" + macroClusters.size());
 	}
 
-	public ArrayList<MacroCluster> clusterData(MersenneTwister twister){
-		ArrayList<MacroCluster> clusters = new ArrayList<MacroCluster>(k);
-		this.macroClusters = clusters;
-		ArrayList<DataPoint> dataPoints = dataChunk.getDataPointArray();
-		//Select centroids proportionate to class representation for initialisation.
-		
-		initialiseClusters(twister);
-//		for(int i = 0; i < k; i++){
-//			System.out.println("Macrocluster "+ i + " initial centroid: " + macroClusters.get(i).getCentroid());
-//		}
-		//initialise all dataPoints to cluster with nearest centroid.
-		double totalValue = 0;
-		for(DataPoint d: dataPoints){
-			//CHECK TO SEE D WAS NOT ALREADY IN THE CLUSTER
-			if(!d.isCentroid()){
-				totalValue += attachToNearestImp(d);
-			}
-		}
-		
-
-		//System.out.println("Total Value for EM: " + totalValue);
-		expectationMinimisation(clusters,dataPoints);
-//		for(int i = 0; i < clusters.size(); i++){
-//			System.out.println("Cluster " + i + " has " + clusters.get(i).totalPoints + " points and " + clusters.get(i).countNumClasses()+ "classes");
-////			for(int j = 0; j < clusters.get(i).totalPoints; j++){
-////				DataPoint temp = clusters.get(i).getDataPoints().get(j);
-////				//System.out.println("\t" + temp.getLabel() + " distance to cent:" + temp.getDistanceValue(clusters.get(i).getCentroid()) + "Averaage dist to others: " + temp.getAverageDist());
-////			}
-//		}
-		return clusters;
-		
-	}
+	
+	/*
+	 * Expectation minimisation function to find a good clustering.
+	 */
 
 	private void expectationMinimisation(ArrayList<MacroCluster> clusters, ArrayList<DataPoint> dataPoints) {
-		double prevEm = 0;
+
 		int pointsChanged = 1;
 		int iterations = 0;
+		
+		//termination condition: no points change cluster
 		while(pointsChanged > 0){
 			pointsChanged = 0;
-			int changedByRecalcCent = 0;
+			
 			//recalculate the cluster centroids based on the datapoints in the clusters
 			for(int i = 0; i < k; i++){
 				DataPoint newCentroid = clusters.get(i).recalculateCentroid();
-				//System.out.print("New centroid for cluster " + i +": " + newCentroid);
-				//System.out.println();
 				clusters.get(i).setCentroid(newCentroid);
 			}
-			//attach all points to position geometrically nearest to them
+			//shuffle points
 			Collections.shuffle(dataPoints);
+			
+			//total value is the score of the objective function.
 			double totalValue = 0;
+			//for every point
 			for(DataPoint d: dataPoints){
+				//if a cluster only has a single point, do not try to reassign it: it will be closest to itself
 				if(clusters.get(d.getClusterIndex()).getNumPoints() < 2){
 					continue;
 				}
 				clusters.get(d.getClusterIndex()).removePoint(d);
+				
+				//remove point, record where it came from, attach to nearest point
 				int prevSmallIndex = d.getClusterIndex();
 				totalValue += attachToNearestImp(d);
+				
+				//if the cluster the point is attached to changes
 				if(d.getClusterIndex() != prevSmallIndex){
-					//System.out.println("Point " + d.getAbsoluteIndex() +" with label " + d.getLabel() + " has moved from " + prevSmallIndex + " to " + d.getClusterIndex());
+
 					clusters.get(prevSmallIndex).setChanged();
 					clusters.get(d.getClusterIndex()).setChanged();
-					changedByRecalcCent++;
 					pointsChanged++;
-					//System.out.println("Point " + d.getAbsoluteIndex() + " was in " + prevSmallIndex + " and is now in " + d.getClusterIndex());
+
 				}
 			}
 		
@@ -317,16 +376,7 @@ public class Model {
 				System.out.println("EM broken by iteration limit");
 				break;
 			}
-			//System.out.println("Total Value for EM: " + totalValue);
-			//System.out.println("Points changed: " + pointsChanged);
-//			System.out.println("Points changed by the change in centroids: " + changedByRecalcCent);
-			/*for(DataPoint d: dataPoints){
-				System.out.println("Point " + d.getAbsoluteIndex() + " is in cluster " + d.getClusterIndex());
-			}*/
-			//System.out.println("PrevEm: " + prevEm+", diff:" + (totalValue-prevEm));
 
-			prevEm = totalValue;
-			//System.out.println("Iterations: " + iterations);
 		}
 		for(int i = 0; i < k; i++){
 			DataPoint newCentroid = clusters.get(i).recalculateCentroid();
@@ -336,10 +386,15 @@ public class Model {
 		System.out.println("Data point size:" + dataPoints.size());
 	}
 
+	/*
+	 * This function attaches a given point to the nearest 
+	 * cluster, with cluster impurity taken into account.
+	 */
 	private double attachToNearestImp(DataPoint d){
 		double minDistance = Double.MAX_VALUE;
 		int smallIndex = 0;
 		d.resetAverageDist();
+		
 		//see which centroid is closest
 		for(int i = 0; i < macroClusters.size(); i++){
 			MacroCluster current = macroClusters.get(i);
@@ -352,13 +407,15 @@ public class Model {
 				smallIndex = i;
 			}
 		}
+		
 		//add to cluster nearest
-		macroClusters.get(smallIndex).attachPoint(d);
-		//System.out.println("Attached point " + d.getAbsoluteIndex() + " to cluster " + smallIndex);
-		//System.out.println("Distance to cluster: " + minDistance);
+		macroClusters.get(smallIndex).attachPoint(d);;
 		return minDistance;
 	}
 	
+	/*
+	 * Function which turns microclusters into pseudopoints (the summary of microclusters).
+	 */
 	public void createPseudoPoints(double nPlof){
 		double minRating = 1;
 		double maxRating = 0;
@@ -391,7 +448,7 @@ public class Model {
 			LinkedList<DataPoint> appendedPoints = new LinkedList<DataPoint>();
 			for(DataPoint d: m.getDataPoints()){
 				double loop = Loop.loop(d, m, nPlof);
-				if(loop <= 0.5){
+				if(loop <= OUTLIERTHRESHOLD){
 					appendedPoints.add(d);
 				}
 			}
@@ -400,12 +457,21 @@ public class Model {
 		}
 	}
 	
+	/*
+	 * Label propagation algorithm:
+	 * Uses label propagation to assign a label to unlabelled pseudopoints.
+	 */
 	public void propagateLabels(double r, double stddev,ArrayList<Model> contig){
+		this.stddev = stddev;
+		//working list contains the pseudopoints from this model, but also labelled pseudopoints
+		//from previous clusters.
 		ArrayList<PseudoPoint> workingList  = new ArrayList<PseudoPoint>();
 		int vectorLength = pseudoPoints.size();
 		for(int i = 0; i < vectorLength; i++){
 			workingList.add(pseudoPoints.get(i));
 		}
+		
+		//add these labelled microcluster from previous models to the current set.
 		for(Model m: contig){
 			ArrayList<PseudoPoint> temp = m.getPseudo();
 			for(int i = 0; i < temp.size(); i++){
@@ -416,29 +482,20 @@ public class Model {
 				}
 			}
 		}
+		
 		Collections.sort(workingList);
 		Collections.sort(pseudoPoints);
-//		for(int i = 0; i < vectorLength; i++){
-//			System.out.println(pseudoPoints.get(i).toString());
-//		}
-		//System.out.println();
-		double alpha = 0.99;
+		//weight 2d array
 		double[][] weights = new double[vectorLength][vectorLength];
+		
+		//the diagonal 2d contains the sum of a ith row at entry [i][i]
 		double[][] diag = new double[vectorLength][vectorLength];
-		double[][] diagOther = new double[vectorLength][vectorLength];
-		double[] colCounter = new double[vectorLength];
-		//System.out.println("Testing weights:");
+		//constructing the weight matrix
 		for(int i = 0; i < vectorLength; i++){
 			double counter= 0;
-			//System.out.println("For point of label " + workingList.get(i).getLabel());
-			double distToZero = 0;
-			int zeroCount = 0;
-			double distToOne = 0;
-			int oneCount = 0;
 			for(int j = 0; j < vectorLength; j++){
 				if(i ==j){	
 					weights[i][j] =0;
-					//System.out.print(weights[i][j] + " ");
 					continue;
 				}
 				PseudoPoint ith = workingList.get(i);
@@ -447,56 +504,34 @@ public class Model {
 				if(ratingClusters){
 					weights[i][j] *= jth.getClusterRating();
 				}
-				//sSystem.out.println("Associated weight:" + Math.exp(-1*(distance/(2*stddev*stddev))));
 				counter += weights[i][j];
-				colCounter[j] += weights[i][j];
-				//System.out.print(weights[i][j] + " ");
-				if(workingList.get(j).getLabel() == 0){
-					distToZero += weights[i][j];
-					zeroCount++;
-				}else if(workingList.get(j).getLabel() == 1){
-					distToOne += weights[i][j];
-					oneCount++;
-				}
-
 			}
 			diag[i][i] = counter;
-			//System.out.println("Total distance to zero labelled centroids:" + distToZero/zeroCount );
-			//System.out.println("Total distance to one labelled centroids:" + distToOne/oneCount );
-			//System.out.println();
 		}
-		//System.out.println("Diagonal:");
+		
 		for(int i = 0; i < vectorLength; i++){
-			//System.out.println("Diag new: " + diag[i][i]);
 			diag[i][i] = ((double)1)/Math.sqrt(diag[i][i]);
-			diagOther[i][i] = ((double)1)/Math.sqrt(colCounter[i]); 
-			//System.out.println("Diag after: " + diag[i][i]);
 		}
-		//System.out.println();
-		Matrix dOther = new Matrix(diagOther);
+		
+		//convert 2d arrays to matrices
 		Matrix d = new Matrix(diag);
 		Matrix w = new Matrix(weights);
-		//System.out.println("Laplacian normalised:");
+
 		//laplacian normalisation
 		Matrix p = d.times(w).times(d);
 		double[][] normLaplace = p.getArray();
-		for(int i = 0; i < vectorLength; i++){
-			double counter = 0;
-			double counterother = 0;
-			for(int j = 0; j < vectorLength; j++){
-				//System.out.println("Actual: " + normLaplace[i][j] + " expected:" + weights[i][j]*diag[i][i]*diag[j][j]);
-				counter += normLaplace[j][i];
-				counterother += normLaplace[i][j];
-			}
-//			System.out.println("");
-//			System.out.println("Weight of " + i + " is " + workingList.get(i).getWeight());
-//			System.out.println("Level of influence exerted by " + i +" is : " + counter );
-//			System.out.println("Level of influence exerted on " + i +" is : " + counterother );
-		}
-
+		
 		double[][] tZero = new double[vectorLength][c+1];
+		
+		//tracks predicted class for each pseudopoint
 		int[] classTracker = new int[vectorLength];
+		
+		//create the vectors for each pseudopoint based on their classes. 
+		//if labelled x, the xth value in vector should be set and the rest should be 0.
+		//if unlabelled, all values should be set to 0.
 		for(int i = 0; i < vectorLength; i++){
+			//increment by one in previous value takes the -1 class of unlabelled points to 0.
+			//hence indexable. So in this calculation, stuff indexed by 0 is unlabelled and class 0 is indexed by one,etc.
 			int curClass = workingList.get(i).getLabel()+1;
 			classTracker[i] = curClass;
 			for(int j = 0; j < c+1; j++){
@@ -514,15 +549,15 @@ public class Model {
 		Matrix prevT = tZeroMat;
 		boolean converge = false;
 		int iterations = 0;
-		double epsilon = 0.001;
+		//iteratively apply the label propagation until point changes classes.
 		while(!converge){
 			prevT = currentT;
-			currentT = p.times(prevT).times(alpha).plus(tZeroMat.times(1-alpha));
+			currentT = p.times(prevT).times(ALPHA).plus(tZeroMat.times(1-ALPHA));
 			
 			//tZero = currentT.getArray();
 			converge = true;
 			for(int i = 0; i < vectorLength; i++){
-				//find class of I by finding max value
+				//find current predicted class of I by finding max value
 				int maxIndex = 0;
 				double maxValue = 0;
 				for(int j = 0; j < c+1; j++){
@@ -539,20 +574,8 @@ public class Model {
 			iterations++;
 		}
 		
-		
-		/*for(int i = 0; i < vectorLength; i++){
-			System.out.print("microCluster " + i +": ");
-			for(int j = 0; j < c+1; j++){
-				System.out.print( currentT.get(i,j)+" ");
-			}
-			System.out.println();
-		}*/
 		System.out.println("Label prop converges after Iterations: " + iterations);
-		
-		/*HAVE PROBLEM - SINCE INCORPORATING PREVIOUS MICROCLUSTERS, 
-		 CANNOT CORRESPOND BETWEEN POINT GENERATED IN LABEL PROP AND 
-		 UNLABELLED MICROCLUSTER IN CURRENT
-		 */
+		//match the points in the working set to the original pseudo-points by comparing centroids
 		for(int i = pseudoPoints.size()-1; i >= 0;i--){
 			for(int k = vectorLength-1; k >= 0;k--){
 				if(workingList.get(k).getCentroid() != pseudoPoints.get(i).getCentroid()){
@@ -560,39 +583,45 @@ public class Model {
 				}
 				int index = -1;
 				double maxValue = 0;
+				//find the class predicted
 				for(int j = 0; j < c+1; j++){
 					if(currentT.get(i,j) > maxValue){
 						index = j;
 						maxValue = currentT.get(i,j);
 					}
 				}
+				//label point if point is unlabelled already. Remember to decrement 
+				//to get the correct corresponding class, since class 0 is unlabelled for
+				//the purposes of label propagation.
 				if(pseudoPoints.get(i).getLabel() == -1){
 					pseudoPoints.get(i).setClass(index-1);
 				}
-//				}else{
-//					if(pseudoPoints.get(i).getLabel() != index-1){
-//						System.out.println("Point " + i + " has been mispredicted in label propagation: was" + pseudoPoints.get(i).getLabel() + " but now "+ (index-1));
-//					}
-//				}
+
 				break;
 			}
 			
 		}
-//		for(int i = 0; i < vectorLength; i++){
-//			System.out.println("Point "+ i + ": " + pseudoPoints.get(i).getLabel());
-//		}
-		System.out.println("Number of pseudoPoints generated:" + vectorLength);
 	}
-	
+	/*
+	 * Weight function for the label propagation.
+	 */
 	private double weightFunction(DataPoint d, PseudoPoint p, double stddev){
 		double distance = d.getDistanceValue(p.getCentroid());
 		return  Math.exp(-1*(distance/(2*stddev*stddev)))*p.getWeight();
 	}
 	
+	/*
+	 This function predicts the label of a given point against 
+	 the complete model. Returns a matrix which will be combined with other models
+	 when making predictions against the ensemble.
+	 */
+	
 	public Matrix predictLabel(DataPoint d, double stddev){
 		double epsilon = 1e-10;
 		Matrix predictMatrix = new Matrix(1, c+1);
 		double normalisation = epsilon;
+		
+		// determine similarity of point relative to each 
 		for(PseudoPoint p: pseudoPoints){
 			if(p.getLabel() == -1){
 				continue;
@@ -608,22 +637,15 @@ public class Model {
 			
 			normalisation += weight;
 		}
-//		System.out.println("Before normalisation:");
-//		for(int i = 0; i < c+1; i++){
-//			System.out.print(predictMatrix.get(0, i) + " ");
-//		}
-//		System.out.println();
+
 		predictMatrix.timesEquals(((double)1)/normalisation);
-		//System.out.println("Normalisation: "+ normalisation );
-//		System.out.println("After:");
-//		
-//		for(int i = 0; i < c+1; i++){
-//			System.out.print(predictMatrix.get(0, i) + " ");
-//		}
-//		System.out.println();
 		return predictMatrix;
 	}
-
+	/*
+	 * This function makes a definitive prediction for the class of a point
+	 * against a single model, rather than returning the vector. It does this by
+	 * labelling the class as the largest of the values in the vector.
+	 */
 	public int predictLabelValue(DataPoint d, double e) {
 		Matrix p = predictLabel(d,e);
 		double maxValue = 0;
@@ -637,16 +659,12 @@ public class Model {
 		return predictedClass;
 	}
 
-	public ArrayList<Boolean> getSeenClass() {
-		// TODO Auto-generated method stub
-		return seenClass;
-	}
 
-	public int getNumClass() {
-		return c;
-	}
 
-	
+	/*
+	 * This function is used when pruning pseudopoints based on accuracy. It assigns each point to its nearest pseudopoint,
+	 * so that other functions can calculate teh accuracy of this pseudopoint and delete it if necessary.
+	 */
 	private boolean attachToNearest(ArrayList<LinkedList<DataPoint>> neighbours, DataPoint currentPoint){
 		PseudoPoint currentPseudo;
 		double minDistance = Double.MAX_VALUE;
@@ -732,25 +750,18 @@ public class Model {
 	
 	public double classificationScore(ArrayList<DataPoint> data){
 		double misClassify = 0;
-		int zeroCounter = 0;
-		int oneCounter = 0;
+
 		for(DataPoint d: data){
-			int predicted = predictLabelValue(d, 0.25);
+			int predicted = predictLabelValue(d, stddev);
 			if(d.getLabel() != predicted){
 				//System.out.println("Predicted label: " + currentMod.predictLabelValue(d, 0.25) + " and the actual label is " + d.getLabel());
 				misClassify++;
 			}
-			if(predicted ==1){
-				oneCounter++;
-			}else if(predicted == 0){
-				zeroCounter++;
-			}
+
 		}
-		//System.out.println("For single model 0 was predicted: " + zeroCounter +" times");
-		//System.out.println("For single model 1 was predicted: " + oneCounter +" times");
+
 		double rating = 1-(double)misClassify/data.size();
-		//System.out.println("Misclassify:" + misClassify);
-		//System.out.println("Number of tests: " + data.size());
+
 		return rating;
 	}
 
