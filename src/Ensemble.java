@@ -14,7 +14,7 @@ public class Ensemble {
 	private int success;
 	private int classifications;
 	
-	public Ensemble(int l, int k, int c){
+	public Ensemble(int l, int k){
 		maxModels = l;
 		numModels = 0;
 		this.numOfClass = new ArrayList<Integer>();
